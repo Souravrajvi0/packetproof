@@ -100,15 +100,15 @@ PYTHONPATH=. python3.11 evaluation/evaluate.py
 
 Writes `evaluation/results/latest.json` with planted-issue detection heuristics, finding counts, and analysis duration.
 
-### Measured results (this build environment)
+### Measured results (CPU build VM, Oct 2026)
 
 | Metric | Result |
 |--------|--------|
-| Unit tests | **15 passed** (run `pytest` locally to confirm current count) |
-| Ollama on build VM | **Not installed** — end-to-end Gemma analysis **not verified** here |
-| `evaluate.py` benchmarks | **Not run** — run locally after `ollama pull gemma3:4b` |
+| Unit tests | **16 passed** (`PYTHONPATH=. python3.11 -m pytest`) |
+| Gemma requirement extraction (demo PDF) | **11 requirements** in **~13 min** (CPU-only EC2) |
+| Full `evaluate.py` | **Slow on CPU** — use GPU machine or allow 1–3+ hours; see `evaluation/BENCHMARK.md` |
 
-Do not treat competition metrics as authoritative until you run evaluation on your machine.
+Repository: https://github.com/Souravrajvi0/packetproof
 
 ## Privacy and security
 

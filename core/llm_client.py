@@ -12,7 +12,7 @@ from core.schemas import LLMError
 
 DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "gemma3:4b"
-DEFAULT_TIMEOUT = 300.0
+DEFAULT_TIMEOUT = 1200.0
 
 
 class OllamaClient:

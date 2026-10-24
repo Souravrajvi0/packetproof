@@ -46,7 +46,7 @@ def run_evaluation() -> dict:
     requirements, apps = load_demo_files()
     key = json.loads(ANSWER_KEY.read_text())
 
-    client = OllamaClient()
+    client = OllamaClient(timeout=1800.0)
     if not client.is_available():
         return {
             "error": "Ollama not available; evaluation requires local Gemma inference.",
