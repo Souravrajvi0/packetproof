@@ -23,7 +23,7 @@ Manual cross-checking of requirements vs. uploads is tedious and error-prone. Pa
 
 | Area | What you get |
 |------|----------------|
-| Ingest | Multi-PDF upload, PyMuPDF, unreadable-page warnings |
+| Ingest | PDF, pasted text, photos (PNG/JPG), `.txt` / `.md` |
 | AI | Gemma 3 4B via **Ollama** or **OpenRouter** |
 | Trust layer | Page/quote verification → **Needs review** when citations fail |
 | UI | Streamlit, evidence inspector, action plan, HTML export |

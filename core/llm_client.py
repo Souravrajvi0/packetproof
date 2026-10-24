@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import re
 from typing import Any, Optional
@@ -61,6 +62,29 @@ class OllamaClient:
         if not text.strip():
             raise LLMError("Ollama returned an empty response.")
         return text.strip()
+
+    def generate_from_image(self, prompt: str, image_bytes: bytes, filename: str = "image.png") -> str:
+        b64 = base64.b64encode(image_bytes).decode("ascii")
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "prompt": prompt,
+            "images": [b64],
+            "stream": False,
+            "options": {"temperature": 0.1, "num_predict": 4096},
+        }
+        try:
+            with httpx.Client(timeout=self.timeout) as client:
+                response = client.post(f"{self.base_url}/api/generate", json=payload)
+        except httpx.ConnectError as exc:
+            raise LLMError("Cannot connect to Ollama for image transcription.") from exc
+        except httpx.TimeoutException as exc:
+            raise LLMError("Ollama image request timed out.") from exc
+        if response.status_code != 200:
+            raise LLMError(f"Ollama image HTTP {response.status_code}: {response.text[:400]}")
+        text = (response.json().get("response") or "").strip()
+        if not text:
+            raise LLMError(f"No text transcribed from {filename}.")
+        return text
 
     def generate_json(self, prompt: str, system: Optional[str] = None) -> Any:
         raw = self.generate(prompt, system=system)

@@ -9,7 +9,7 @@ from core.applicability import assess_applicability
 from core.contradictions import detect_contradictions
 from core.evidence import match_all_evidence
 from core.llm_factory import LLMClient, create_llm_client, resolve_provider
-from core.pdf_processor import extract_pdf_from_bytes
+from core.ingest import ingest_bytes
 from core.requirements import extract_requirements
 from core.schemas import AnalysisReport, LLMError, UploadedDocument
 from core.verifier import build_findings, document_coverage
@@ -33,12 +33,13 @@ def run_analysis(
     warnings: list[str] = []
 
     progress("Reading documents", 0.05)
+    llm = client or create_llm_client(resolve_provider())
     req_name, req_data = requirements_bytes
-    instructions = extract_pdf_from_bytes(req_name, req_data)
+    instructions = ingest_bytes(req_name, req_data, vision_client=llm)
     app_docs: list[UploadedDocument] = []
     for fname, data in application_files:
         try:
-            app_docs.append(extract_pdf_from_bytes(fname, data))
+            app_docs.append(ingest_bytes(fname, data, vision_client=llm))
         except Exception as exc:
             warnings.append(f"Skipped {fname}: {exc}")
 
@@ -48,7 +49,6 @@ def run_analysis(
     for doc in [instructions] + app_docs:
         warnings.extend(doc.extraction_warnings)
 
-    llm = client or create_llm_client(resolve_provider())
     if json_loader is None and not llm.is_available():
         raise LLMError(
             "No LLM available. Use OpenRouter (API key) or start Ollama with `ollama pull gemma3:4b`."

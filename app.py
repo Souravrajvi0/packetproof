@@ -13,7 +13,7 @@ load_dotenv()
 from core.llm_client import DEFAULT_MODEL
 from core.llm_factory import create_llm_client
 from core.openrouter_client import DEFAULT_OPENROUTER_MODEL
-from core.pdf_processor import extract_pdf_from_bytes
+from core.ingest import document_from_text, ingest_bytes
 from core.pipeline import run_analysis
 from core.schemas import LLMError
 from reports.html_report import generate_html_report
@@ -144,59 +144,106 @@ def sidebar() -> None:
         st.caption("Not legal advice. Does not prove authenticity or eligibility.")
 
 
+ACCEPTED_TYPES = ["pdf", "txt", "md", "png", "jpg", "jpeg", "webp", "gif"]
+
+
+def _active_client():
+    provider = st.session_state.get("llm_provider", "ollama")
+    if provider == "openrouter":
+        return create_llm_client(
+            "openrouter",
+            openrouter_api_key=st.session_state.get("openrouter_api_key", ""),
+            openrouter_model=st.session_state.get(
+                "openrouter_model", DEFAULT_OPENROUTER_MODEL
+            ),
+            timeout=600.0,
+        )
+    return create_llm_client(
+        "ollama",
+        ollama_url=st.session_state.get("ollama_url", "http://127.0.0.1:11434"),
+        ollama_model=st.session_state.get("ollama_model", DEFAULT_MODEL),
+    )
+
+
+def _preview_doc(doc) -> None:
+    render_document_card(doc)
+    excerpt = doc.full_text[:1200]
+    if excerpt.strip():
+        with st.expander("Preview extracted text", expanded=False):
+            st.text(excerpt)
+    elif doc.extraction_warnings:
+        st.warning(doc.extraction_warnings[0])
+
+
 def step_requirements() -> None:
-    st.markdown('<div class="pp-step-label">1 · Requirements PDF</div>', unsafe_allow_html=True)
+    st.markdown('<div class="pp-step-label">1 · Requirements</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="pp-help">Upload the program instructions or eligibility document.</div>',
+        '<div class="pp-help">PDF, photo, text file, or paste the instructions.</div>',
         unsafe_allow_html=True,
     )
-    uploaded = st.file_uploader(
-        "Drop or browse requirements PDF",
-        type=["pdf"],
-        key="req_uploader",
-    )
-    if uploaded:
-        data = uploaded.getvalue()
-        try:
-            doc = extract_pdf_from_bytes(uploaded.name, data)
-            st.session_state["requirements_file"] = (uploaded.name, data)
-            st.session_state["requirements_doc"] = doc
-            render_document_card(doc)
-            excerpt = doc.full_text[:900]
-            if excerpt.strip():
-                with st.expander("Preview extracted text", expanded=False):
-                    st.text(excerpt)
-            else:
-                st.error("No extractable text found. Scanned PDFs need OCR (not in this MVP).")
-        except Exception as exc:
-            st.error(str(exc))
-    else:
-        st.markdown(
-            '<div class="pp-empty">Drop a requirements PDF here. Text-based files work best.</div>',
-            unsafe_allow_html=True,
+    tab_file, tab_paste = st.tabs(["Upload file", "Paste text"])
+    with tab_file:
+        uploaded = st.file_uploader(
+            "Drop PDF, image, or .txt",
+            type=ACCEPTED_TYPES,
+            key="req_uploader",
         )
+        if uploaded:
+            data = uploaded.getvalue()
+            try:
+                client = _active_client()
+                doc = ingest_bytes(uploaded.name, data, vision_client=client)
+                st.session_state["requirements_file"] = (uploaded.name, data)
+                st.session_state["requirements_doc"] = doc
+                _preview_doc(doc)
+            except Exception as exc:
+                st.error(str(exc))
+        elif not st.session_state.get("requirements_file"):
+            st.markdown(
+                '<div class="pp-empty">Screenshots of instruction pages work if Gemma can read the photo.</div>',
+                unsafe_allow_html=True,
+            )
+    with tab_paste:
+        pasted = st.text_area(
+            "Paste eligibility or instruction text",
+            height=180,
+            placeholder="e.g. Applicants must submit a transcript, GPA of 3.0…",
+            key="req_paste",
+        )
+        if st.button("Use pasted text", key="use_paste_req"):
+            if not pasted.strip():
+                st.error("Paste some instruction text first.")
+            else:
+                doc = document_from_text("pasted_requirements.txt", pasted)
+                st.session_state["requirements_file"] = (
+                    "pasted_requirements.txt",
+                    pasted.encode("utf-8"),
+                )
+                st.session_state["requirements_doc"] = doc
+                _preview_doc(doc)
 
 
 def step_application() -> None:
     st.markdown('<div class="pp-step-label">2 · Application documents</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="pp-help">Add the completed form and supporting PDFs.</div>',
+        '<div class="pp-help">PDFs, photos of ID/letters, or text files. Multiple files OK.</div>',
         unsafe_allow_html=True,
     )
     uploads = st.file_uploader(
-        "Drop or browse application PDFs",
-        type=["pdf"],
+        "Drop PDFs, images, or text files",
+        type=ACCEPTED_TYPES,
         accept_multiple_files=True,
         key="app_uploader",
     )
     if uploads:
         files: list[tuple[str, bytes]] = []
         docs = []
+        client = _active_client()
         for f in uploads:
             data = f.getvalue()
             files.append((f.name, data))
             try:
-                docs.append(extract_pdf_from_bytes(f.name, data))
+                docs.append(ingest_bytes(f.name, data, vision_client=client))
             except Exception as exc:
                 st.error(f"{f.name}: {exc}")
         st.session_state["application_files"] = files
@@ -205,7 +252,7 @@ def step_application() -> None:
             render_document_card(doc)
     else:
         st.markdown(
-            '<div class="pp-empty">You can upload several files: form, ID, letters, statements.</div>',
+            '<div class="pp-empty">Form, ID photo, transcript, recommendation, statement…</div>',
             unsafe_allow_html=True,
         )
 
@@ -218,7 +265,7 @@ def step_analyze() -> None:
     )
     if not ready:
         st.markdown(
-            '<div class="pp-empty">Upload a requirements PDF and at least one application PDF to enable analysis.</div>',
+            '<div class="pp-empty">Add requirements (file or paste) and at least one supporting document to analyze.</div>',
             unsafe_allow_html=True,
         )
         return
@@ -236,22 +283,7 @@ def step_analyze() -> None:
             progress_bar.progress(min(1.0, max(0.0, fraction)))
             status.markdown(f"**{stage}**")
 
-        provider = st.session_state.get("llm_provider", "ollama")
-        if provider == "openrouter":
-            client = create_llm_client(
-                "openrouter",
-                openrouter_api_key=st.session_state.get("openrouter_api_key", ""),
-                openrouter_model=st.session_state.get(
-                    "openrouter_model", DEFAULT_OPENROUTER_MODEL
-                ),
-                timeout=600.0,
-            )
-        else:
-            client = create_llm_client(
-                "ollama",
-                ollama_url=st.session_state.get("ollama_url", "http://127.0.0.1:11434"),
-                ollama_model=st.session_state.get("ollama_model", DEFAULT_MODEL),
-            )
+        client = _active_client()
         try:
             report = run_analysis(
                 st.session_state["requirements_file"],
