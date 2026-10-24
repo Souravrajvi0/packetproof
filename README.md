@@ -2,75 +2,83 @@
 
 **Catch application mistakes before they cost you.**
 
-PacketProof is a **privacy-first, local-AI** application inspector for scholarships, universities, grants, internships, jobs, and visas. Upload program instructions and application PDFs; **Gemma 3 4B through Ollama** extracts requirements, matches evidence, flags gaps and inconsistencies, and produces an **evidence-backed** readiness report—without sending documents to cloud AI APIs.
+PacketProof inspects scholarship, job, and visa application packets with **open-weight Gemma 3 4B** and an evidence validation layer. Upload requirements and PDFs; get verified / missing / needs-review findings backed by **quotes, filenames, and page numbers**—not a chatbot guess.
 
-Hacktoberfest 2026: **Slow and Steady — AI that rewards laziness** · **Best Use of Gemma**
+Hacktoberfest 2026: **Slow and Steady** · **Best Use of Gemma**
+
+## Two ways to run Gemma (you choose)
+
+| Mode | Model | Privacy | Best for |
+|------|--------|---------|----------|
+| **Ollama (local)** | `gemma3:4b` | PDF text stays on your machine | Sensitive packets, Hacktoberfest local-AI story |
+| **OpenRouter (cloud)** | `google/gemma-3-4b-it` | Extracted text sent to OpenRouter providers | Faster runs on CPU-only machines, demos, CI |
+
+Same pipeline either way: PyMuPDF → Gemma → quote verifier → dashboard + HTML report.
 
 ## Problem
 
-Application packets combine long instruction PDFs with many supporting files. Manual cross-checking is slow and error-prone. PacketProof automates review while **grounding every conclusion in verifiable citations** (filename, page, quoted text).
+Manual cross-checking of requirements vs. uploads is tedious and error-prone. PacketProof automates it while **grounding conclusions in verifiable citations**.
 
 ## Features
 
 | Area | What you get |
 |------|----------------|
-| Ingest | Multi-PDF upload, PyMuPDF extraction, unreadable-page warnings |
-| AI (local) | Gemma 3 4B via Ollama — requirements, evidence, contradictions |
-| Trust layer | Quote/page verification; weak citations → **Needs review** |
-| UI | Streamlit dashboard, evidence inspector, HTML export |
-| Demo | Meridian Scholars synthetic packet + `answer_key.json` |
-| Quality | pytest + structured `evaluation/evaluate.py` |
+| Ingest | Multi-PDF upload, PyMuPDF, unreadable-page warnings |
+| AI | Gemma 3 4B via **Ollama** or **OpenRouter** |
+| Trust layer | Page/quote verification → **Needs review** when citations fail |
+| UI | Streamlit, evidence inspector, action plan, HTML export |
+| Demo | Meridian Scholars packet + `answer_key.json` |
+| Quality | 21 tests + `evaluation/evaluate.py` with structured planted-issue matching |
 
 ## Architecture
 
 ```mermaid
 flowchart LR
   PDF[PDF uploads] --> Extract[PyMuPDF]
-  Extract --> Gemma[Ollama Gemma 3 4B]
-  Gemma --> Verify[Quote verifier]
-  Verify --> UI[Streamlit + HTML report]
+  Extract --> Ollama[Ollama gemma3:4b]
+  Extract --> OR[OpenRouter gemma-3-4b-it]
+  Ollama --> Pipeline[Requirements + evidence + contradictions]
+  OR --> Pipeline
+  Pipeline --> Verify[Quote verifier]
+  Verify --> Out[Streamlit + HTML]
 ```
 
-## Why open-weight Gemma (local)
-
-- **Privacy:** Applicant PII stays on your hardware.
-- **No inference API required** for normal use.
-- **Portable:** Swap quantizations or models without vendor lock-in.
-
 ## Installation
-
-**Python 3.11+** and **[Ollama](https://ollama.com/)**
 
 ```bash
 cd packetproof
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-ollama pull gemma3:4b
+cp .env.example .env   # optional OpenRouter key
 streamlit run app.py
 ```
 
-## Synthetic demo
+### Local — Ollama
 
 ```bash
-python3.11 demo/generate_samples.py
+ollama pull gemma3:4b
 ```
 
-Upload `demo/samples/meridian_requirements_2026.pdf` plus the other PDFs in `demo/samples/`.
+Select **Ollama — local Gemma** in the sidebar.
 
-## Tests
+### Cloud — OpenRouter
+
+Add to `.env`:
 
 ```bash
-PYTHONPATH=. python3.11 -m pytest
+OPENROUTER_API_KEY=sk-or-v1-...
+PACKETPROOF_INFERENCE=openrouter   # optional default
 ```
+
+Select **OpenRouter — hosted Gemma** in the sidebar. Optional free slug: `google/gemma-3-4b-it:free`.
 
 ## Evaluation
 
 ```bash
-ollama serve   # if needed
 PYTHONPATH=. python3.11 evaluation/evaluate.py
 ```
 
-Uses structured planted-issue matching (`evaluation/planted_match.py`), not keyword grep.
+Uses `evaluation/planted_match.py` (per-finding rules, not keyword grep).
 
 ### Measured results (Gemma 3 4B, Oct 24, 2026)
 
@@ -78,26 +86,17 @@ Uses structured planted-issue matching (`evaluation/planted_match.py`), not keyw
 |--------|--------|
 | Unit tests | **21 passed** |
 | Requirements extracted | **11** |
-| Findings (verified / missing / needs review) | **2 / 0 / 9** |
-| Contradictions | **1** |
-| **Planted issue recall** | **60%** (3/5) |
-| **Planted issue precision** | **33%** |
+| Verified / missing / needs review | **2 / 0 / 9** |
+| Planted issue recall / precision | **60%** / **33%** |
 | Analysis time | **~41 s** |
 
-**True positives:** graduation date conflict; unsigned declaration; GPA below 3.0.  
-**Misses:** missing transcript (needs_review only); stale recommendation (wrongly verified).
-
-Reproduce on your machine with **local Ollama** for the Hacktoberfest story. Maintainer-only cloud backend: see `docs/OPTIONAL_CLOUD_INFERENCE.md` (not used in public write-ups).
+Benchmark run via OpenRouter; **identical Gemma 3 4B weights**—reproduce with Ollama locally if you prefer.
 
 ## Privacy
 
-- **Default:** Ollama on `127.0.0.1` — document text is not sent to PacketProof or third-party AI APIs.
-- Session-only storage; **Clear session** in the sidebar.
-- Limits: 25 MB / PDF, 200 pages; text PDFs only (no OCR in MVP).
-
-## Limitations
-
-Not legal advice; no guarantee of acceptance. Model errors possible—verifier downgrades unverifiable quotes.
+- **Ollama:** Document text processed on your hardware (default privacy path).
+- **OpenRouter:** Extracted text leaves your machine—use only if that fits your threat model.
+- Session memory only; **Clear session** in sidebar. No PII logged to disk by the app.
 
 ## Repository
 
