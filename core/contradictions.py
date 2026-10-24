@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from typing import Callable, Optional
 
-from core.llm_client import OllamaClient
+from core.llm_factory import LLMClient
 from core.schemas import (
     Contradiction,
     ContradictionSeverity,
@@ -170,7 +170,7 @@ def find_contradictions_from_fields(fields: list[ExtractedField]) -> list[Contra
 
 def detect_contradictions(
     application_docs: list[UploadedDocument],
-    client: OllamaClient,
+    client: LLMClient,
     json_loader: Optional[Callable[[str, Optional[str]], object]] = None,
 ) -> list[Contradiction]:
     prompt = _build_field_prompt(application_docs)

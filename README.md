@@ -58,7 +58,20 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Ollama + Gemma
+### Option A — OpenRouter (same model, faster on CPU VMs)
+
+Model ID: **`google/gemma-3-4b-it`** (Gemma 3 4B instruction-tuned).
+
+```bash
+export OPENROUTER_API_KEY='sk-or-v1-...'   # never commit this
+streamlit run app.py
+```
+
+In the sidebar, choose **OpenRouter**. PDF text is sent to OpenRouter’s providers for inference.
+
+Free tier variant (if available on your account): `google/gemma-3-4b-it:free`.
+
+### Option B — Ollama (local, maximum privacy)
 
 ```bash
 ollama pull gemma3:4b
@@ -112,7 +125,7 @@ Repository: https://github.com/Souravrajvi0/packetproof
 
 ## Privacy and security
 
-- Inference: local Ollama only (configurable URL in sidebar).
+- Inference: **Ollama (local)** or **OpenRouter** (cloud Gemma 3 4B) — selectable in the sidebar.
 - Storage: uploads live in Streamlit session memory; clear with **Clear session**.
 - Logging: app does not persist extracted text to disk.
 - Limits: 25 MB / PDF, 200 pages / PDF.

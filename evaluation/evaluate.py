@@ -11,7 +11,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from core.llm_client import OllamaClient
+import os
+
+from core.llm_factory import create_llm_client, resolve_provider
 from core.pipeline import run_analysis
 from core.schemas import FindingStatus, LLMError
 
@@ -46,11 +48,16 @@ def run_evaluation() -> dict:
     requirements, apps = load_demo_files()
     key = json.loads(ANSWER_KEY.read_text())
 
-    client = OllamaClient(timeout=1800.0)
+    provider = resolve_provider(
+        "openrouter" if os.environ.get("OPENROUTER_API_KEY") else None
+    )
+    timeout = 600.0 if provider == "openrouter" else 1800.0
+    client = create_llm_client(provider, timeout=timeout)
     if not client.is_available():
         return {
-            "error": "Ollama not available; evaluation requires local Gemma inference.",
+            "error": "No LLM available. Set OPENROUTER_API_KEY or start Ollama with gemma3:4b.",
             "ollama_available": False,
+            "provider": provider,
         }
 
     start = time.perf_counter()
@@ -89,6 +96,7 @@ def run_evaluation() -> dict:
 
     return {
         "ollama_available": True,
+        "provider": provider,
         "requirements_extracted": len(report.requirements),
         "findings_total": total_reqs,
         "verified": verified,

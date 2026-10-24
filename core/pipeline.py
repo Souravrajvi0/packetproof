@@ -8,7 +8,7 @@ from typing import Callable, Optional
 from core.applicability import assess_applicability
 from core.contradictions import detect_contradictions
 from core.evidence import match_all_evidence
-from core.llm_client import OllamaClient
+from core.llm_factory import LLMClient, create_llm_client, resolve_provider
 from core.pdf_processor import extract_pdf_from_bytes
 from core.requirements import extract_requirements
 from core.schemas import AnalysisReport, LLMError, UploadedDocument
@@ -24,7 +24,7 @@ def _noop_progress(stage: str, fraction: float) -> None:
 def run_analysis(
     requirements_bytes: tuple[str, bytes],
     application_files: list[tuple[str, bytes]],
-    client: Optional[OllamaClient] = None,
+    client: Optional[LLMClient] = None,
     progress: ProgressCallback = _noop_progress,
     json_loader: Optional[Callable] = None,
     skip_contradictions: bool = False,
@@ -48,10 +48,10 @@ def run_analysis(
     for doc in [instructions] + app_docs:
         warnings.extend(doc.extraction_warnings)
 
-    llm = client or OllamaClient()
+    llm = client or create_llm_client(resolve_provider())
     if json_loader is None and not llm.is_available():
         raise LLMError(
-            "Ollama is not reachable. Install Ollama, run `ollama pull gemma3:4b`, and start the service."
+            "No LLM available. Use OpenRouter (API key) or start Ollama with `ollama pull gemma3:4b`."
         )
 
     progress("Extracting requirements", 0.2)

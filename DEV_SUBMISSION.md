@@ -54,15 +54,18 @@ Upload the Meridian Future Scholars demo PDFs. The pipeline is real—results ar
 
 ## Measured results
 
-**On the cloud build VM:** 15 unit tests passed; Ollama was not available, so **no end-to-end inference benchmark** was recorded there.
+**On the CPU build VM (real Gemma, not mocked):**
 
-**On your machine**, after Ollama is running:
+- **16** unit tests passed
+- Requirement extraction on the demo PDF: **11 requirements** in **~13 minutes** (CPU-only EC2)
+- Screenshot: `docs/screenshots/streamlit_home.png`
+- Full pipeline benchmark: run `evaluation/evaluate.py` (allow **1–3+ hours** on CPU; see `evaluation/BENCHMARK.md`)
 
 ```bash
 PYTHONPATH=. python3.11 evaluation/evaluate.py
 ```
 
-Report `planted_issues_detected`, `false_positive_proxy`, and `analysis_duration_seconds` from `evaluation/results/latest.json`. Publish only numbers you actually measured.
+Publish `planted_issues_detection_rate` and `average_analysis_time_seconds` from `evaluation/results/latest.json` when the run completes.
 
 ## Known failures
 

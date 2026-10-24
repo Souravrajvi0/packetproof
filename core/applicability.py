@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-from core.llm_client import OllamaClient
+from core.llm_factory import LLMClient
 from core.schemas import Requirement, UploadedDocument
 
 SYSTEM = """You decide if conditional application requirements apply to this applicant.
@@ -41,7 +41,7 @@ If the condition cannot be determined from the documents, set is_applicable to t
 def assess_applicability(
     requirements: list[Requirement],
     application_docs: list[UploadedDocument],
-    client: OllamaClient,
+    client: LLMClient,
     json_loader: Optional[Callable[[str, Optional[str]], object]] = None,
 ) -> dict[str, tuple[bool, str]]:
     """Map requirement_id -> (is_applicable, explanation). Non-conditional reqs are always applicable."""

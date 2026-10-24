@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-from core.llm_client import OllamaClient
+from core.llm_factory import LLMClient
 from core.schemas import (
     EvidenceMatch,
     ProvisionalMatchStatus,
@@ -92,7 +92,7 @@ def parse_evidence_match(data: object, requirement_id: str) -> EvidenceMatch:
 def match_evidence_for_requirement(
     requirement: Requirement,
     application_docs: list[UploadedDocument],
-    client: OllamaClient,
+    client: LLMClient,
     json_loader: Optional[Callable[[str, Optional[str]], object]] = None,
 ) -> EvidenceMatch:
     prompt = _build_match_prompt(requirement, application_docs)
@@ -106,7 +106,7 @@ def match_evidence_for_requirement(
 def match_all_evidence(
     requirements: list[Requirement],
     application_docs: list[UploadedDocument],
-    client: OllamaClient,
+    client: LLMClient,
     progress_callback: Optional[Callable[[str], None]] = None,
     json_loader: Optional[Callable[[str, Optional[str]], object]] = None,
 ) -> list[EvidenceMatch]:

@@ -6,7 +6,7 @@ from typing import Callable, Optional
 
 from pydantic import ValidationError
 
-from core.llm_client import OllamaClient
+from core.llm_factory import LLMClient
 from core.schemas import (
     ModelResponseValidationError,
     Requirement,
@@ -91,7 +91,7 @@ def parse_requirements_response(data: object, source_filename: str) -> list[Requ
 
 def extract_requirements(
     instructions_doc: UploadedDocument,
-    client: OllamaClient,
+    client: LLMClient,
     json_loader: Optional[Callable[[str, Optional[str]], object]] = None,
 ) -> list[Requirement]:
     prompt = _build_extraction_prompt(instructions_doc)

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import streamlit as st
 
-from core.llm_client import DEFAULT_MODEL, OllamaClient
+import os
+
+from core.llm_client import DEFAULT_MODEL
+from core.llm_factory import create_llm_client
+from core.openrouter_client import DEFAULT_OPENROUTER_MODEL
 from core.pdf_processor import extract_pdf_from_bytes
 from core.pipeline import run_analysis
 from core.schemas import LLMError
@@ -52,31 +56,64 @@ def clear_session() -> None:
     init_session()
 
 
+def _secret_openrouter_key() -> str:
+    try:
+        return str(st.secrets.get("OPENROUTER_API_KEY", "")).strip()
+    except Exception:
+        return ""
+
+
 def sidebar() -> None:
     with st.sidebar:
-        st.markdown("### Settings")
-        ollama_url = st.text_input("Ollama URL", value="http://127.0.0.1:11434")
-        model = st.text_input("Model", value=DEFAULT_MODEL)
-        st.session_state["ollama_url"] = ollama_url
-        st.session_state["ollama_model"] = model
+        st.markdown("### Inference")
+        default_provider = (
+            "openrouter"
+            if os.environ.get("OPENROUTER_API_KEY") or _secret_openrouter_key()
+            else "ollama"
+        )
+        provider = st.radio(
+            "Provider",
+            options=["openrouter", "ollama"],
+            format_func=lambda x: "OpenRouter (Gemma 3 4B cloud)" if x == "openrouter" else "Ollama (local)",
+            index=0 if default_provider == "openrouter" else 1,
+        )
+        st.session_state["llm_provider"] = provider
 
-        client = OllamaClient(base_url=ollama_url, model=model)
-        if client.is_available():
-            st.success("Ollama connected")
+        if provider == "openrouter":
+            env_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+            default_key = env_key or _secret_openrouter_key()
+            api_key = st.text_input(
+                "OpenRouter API key",
+                value=default_key,
+                type="password",
+                help="Set OPENROUTER_API_KEY env var to avoid pasting here.",
+            )
+            or_model = st.text_input("OpenRouter model", value=DEFAULT_OPENROUTER_MODEL)
+            st.session_state["openrouter_api_key"] = api_key
+            st.session_state["openrouter_model"] = or_model
+            if api_key:
+                st.success("OpenRouter key set")
+            else:
+                st.warning("Add your OpenRouter API key")
+            st.caption("PDF text is sent to OpenRouter for inference.")
         else:
-            st.warning("Ollama not reachable — start Ollama and pull gemma3:4b")
+            ollama_url = st.text_input("Ollama URL", value="http://127.0.0.1:11434")
+            model = st.text_input("Ollama model", value=DEFAULT_MODEL)
+            st.session_state["ollama_url"] = ollama_url
+            st.session_state["ollama_model"] = model
+            probe = create_llm_client(
+                "ollama", ollama_url=ollama_url, ollama_model=model, timeout=5.0
+            )
+            if probe.is_available():
+                st.success("Ollama connected")
+            else:
+                st.warning("Ollama not reachable — run `ollama pull gemma3:4b`")
+            st.caption("Documents stay on this machine.")
 
         st.markdown("---")
         if st.button("Clear session", type="secondary"):
             clear_session()
             st.rerun()
-
-        st.markdown(
-            """
-            **Privacy:** Documents are processed in memory on this machine.
-            PacketProof does not send your PDFs to external AI APIs.
-            """
-        )
 
 
 def step_requirements() -> None:
@@ -147,10 +184,22 @@ def step_analyze() -> None:
             progress_bar.progress(min(1.0, max(0.0, fraction)))
             status.markdown(f"**{stage}**")
 
-        client = OllamaClient(
-            base_url=st.session_state.get("ollama_url", "http://127.0.0.1:11434"),
-            model=st.session_state.get("ollama_model", DEFAULT_MODEL),
-        )
+        provider = st.session_state.get("llm_provider", "ollama")
+        if provider == "openrouter":
+            client = create_llm_client(
+                "openrouter",
+                openrouter_api_key=st.session_state.get("openrouter_api_key", ""),
+                openrouter_model=st.session_state.get(
+                    "openrouter_model", DEFAULT_OPENROUTER_MODEL
+                ),
+                timeout=600.0,
+            )
+        else:
+            client = create_llm_client(
+                "ollama",
+                ollama_url=st.session_state.get("ollama_url", "http://127.0.0.1:11434"),
+                ollama_model=st.session_state.get("ollama_model", DEFAULT_MODEL),
+            )
         try:
             report = run_analysis(
                 st.session_state["requirements_file"],
