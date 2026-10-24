@@ -11,6 +11,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from core.env_loader import load_dotenv
+
+load_dotenv()
+
 import os
 
 from core.llm_factory import create_llm_client, resolve_provider

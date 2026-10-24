@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import os
+
 import streamlit as st
 
-import os
+from core.env_loader import load_dotenv
+
+load_dotenv()
 
 from core.llm_client import DEFAULT_MODEL
 from core.llm_factory import create_llm_client
