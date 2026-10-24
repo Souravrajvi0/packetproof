@@ -151,10 +151,9 @@ def step_requirements() -> None:
         unsafe_allow_html=True,
     )
     uploaded = st.file_uploader(
-        "Application instructions (PDF)",
+        "Drop or browse requirements PDF",
         type=["pdf"],
         key="req_uploader",
-        label_visibility="collapsed",
     )
     if uploaded:
         data = uploaded.getvalue()
@@ -185,11 +184,10 @@ def step_application() -> None:
         unsafe_allow_html=True,
     )
     uploads = st.file_uploader(
-        "Application & supporting PDFs",
+        "Drop or browse application PDFs",
         type=["pdf"],
         accept_multiple_files=True,
         key="app_uploader",
-        label_visibility="collapsed",
     )
     if uploads:
         files: list[tuple[str, bytes]] = []

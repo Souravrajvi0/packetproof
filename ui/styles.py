@@ -4,12 +4,21 @@ CUSTOM_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-html, body, [class*="st-"], [data-testid="stAppViewContainer"] {
+html, body, [data-testid="stAppViewContainer"] {
     font-family: Inter, system-ui, -apple-system, sans-serif;
 }
 
 [data-testid="stAppViewContainer"] {
     background: #f4f6f9;
+}
+
+/* Keep Material icon ligatures intact */
+span[class^="material"],
+[data-testid="stIconMaterial"],
+.material-icons,
+.material-symbols-outlined,
+.material-symbols-rounded {
+    font-family: "Material Symbols Rounded", "Material Symbols Outlined", "Material Icons" !important;
 }
 
 .main .block-container {
@@ -21,17 +30,28 @@ html, body, [class*="st-"], [data-testid="stAppViewContainer"] {
 [data-testid="stHeader"] {
     background: transparent;
 }
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="collapsedControl"],
+#MainMenu {
+    visibility: hidden;
+    height: 0;
+}
+
+[data-testid="stFileUploaderDropzone"] [data-testid="stIconMaterial"],
+[data-testid="stFileUploader"] [data-testid="stIconMaterial"] {
+    display: none !important;
+}
 
 [data-testid="stSidebar"] {
     background: #0f172a;
 }
-[data-testid="stSidebar"] * {
-    color: #e2e8f0 !important;
-}
-[data-testid="stSidebar"] .stRadio label,
 [data-testid="stSidebar"] p,
-[data-testid="stSidebar"] span {
-    color: #cbd5e1 !important;
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stMarkdown,
+[data-testid="stSidebar"] .stCaption,
+[data-testid="stSidebar"] [data-testid="stWidgetLabel"] {
+    color: #cbd5e1;
 }
 [data-testid="stSidebar"] input,
 [data-testid="stSidebar"] [data-baseweb="input"] {
