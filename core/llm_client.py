@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import re
-from typing import Any, Optional
+from typing import Any, Callable, Optional
+
+logger = logging.getLogger("packetproof")
 
 import httpx
 
@@ -87,35 +90,89 @@ class OllamaClient:
         return text
 
     def generate_json(self, prompt: str, system: Optional[str] = None) -> Any:
-        raw = self.generate(prompt, system=system)
+        return generate_json_with_repair(self.generate, prompt, system)
+
+
+def generate_json_with_repair(
+    generate_fn: Callable[[str, Optional[str]], str],
+    prompt: str,
+    system: Optional[str] = None,
+) -> Any:
+    raw = generate_fn(prompt, system)
+    try:
         return parse_json_from_text(raw)
+    except LLMError:
+        logger.warning("JSON parse failed; retrying repair. Preview: %s", raw[:300])
+        repair_prompt = (
+            "Convert the following into a single valid JSON value. "
+            "No markdown fences, no commentary.\n\n"
+            f"{raw[:6000]}"
+        )
+        repaired = generate_fn(repair_prompt, "Output valid JSON only.")
+        return parse_json_from_text(repaired)
+
+
+def _strip_trailing_commas(text: str) -> str:
+    return re.sub(r",(\s*[}\]])", r"\1", text)
+
+
+def _extract_balanced_json(text: str) -> Optional[str]:
+    starts = [i for i in (text.find("{"), text.find("[")) if i >= 0]
+    if not starts:
+        return None
+    start = min(starts)
+    opener = text[start]
+    closer = "}" if opener == "{" else "]"
+    depth = 0
+    in_str = False
+    escape = False
+    quote = '"'
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == quote:
+                in_str = False
+            continue
+        if ch in "\"'":
+            in_str = True
+            quote = ch
+            continue
+        if ch == opener:
+            depth += 1
+        elif ch == closer:
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return None
 
 
 def parse_json_from_text(text: str) -> Any:
-    text = text.strip()
+    text = (text or "").strip().lstrip("\ufeff")
     fence = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
     if fence:
         text = fence.group(1).strip()
 
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
+    candidates = [text, _strip_trailing_commas(text)]
+    extracted = _extract_balanced_json(text)
+    if extracted:
+        candidates.append(extracted)
+        candidates.append(_strip_trailing_commas(extracted))
 
-    for opener, closer in [("{", "}"), ("[", "]")]:
-        start = text.find(opener)
-        if start == -1:
+    decoder = json.JSONDecoder()
+    for candidate in candidates:
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass
+        try:
+            obj, _ = decoder.raw_decode(candidate.strip())
+            return obj
+        except json.JSONDecodeError:
             continue
-        depth = 0
-        for i in range(start, len(text)):
-            if text[i] == opener:
-                depth += 1
-            elif text[i] == closer:
-                depth -= 1
-                if depth == 0:
-                    snippet = text[start : i + 1]
-                    try:
-                        return json.loads(snippet)
-                    except json.JSONDecodeError:
-                        break
+
+    logger.warning("Could not parse JSON. Preview: %s", text[:400])
     raise LLMError("Could not parse JSON from model response.")

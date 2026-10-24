@@ -7,6 +7,7 @@ from typing import Callable, Optional
 from core.llm_factory import LLMClient
 from core.schemas import (
     EvidenceMatch,
+    LLMError,
     ProvisionalMatchStatus,
     Requirement,
     UploadedDocument,
@@ -96,11 +97,21 @@ def match_evidence_for_requirement(
     json_loader: Optional[Callable[[str, Optional[str]], object]] = None,
 ) -> EvidenceMatch:
     prompt = _build_match_prompt(requirement, application_docs)
-    if json_loader:
-        data = json_loader(prompt, MATCH_SYSTEM)
-    else:
-        data = client.generate_json(prompt, system=MATCH_SYSTEM)
-    return parse_evidence_match(data, requirement.id)
+    try:
+        if json_loader:
+            data = json_loader(prompt, MATCH_SYSTEM)
+        else:
+            data = client.generate_json(prompt, system=MATCH_SYSTEM)
+        return parse_evidence_match(data, requirement.id)
+    except LLMError as exc:
+        return EvidenceMatch(
+            requirement_id=requirement.id,
+            explanation=(
+                "Model output was not valid JSON for this requirement. "
+                f"Marked for review. ({exc})"
+            ),
+            provisional_status=ProvisionalMatchStatus.UNCERTAIN,
+        )
 
 
 def match_all_evidence(

@@ -9,7 +9,7 @@ from typing import Any, Optional
 
 import httpx
 
-from core.llm_client import parse_json_from_text
+from core.llm_client import generate_json_with_repair, parse_json_from_text
 from core.schemas import LLMError
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -134,5 +134,4 @@ class OpenRouterClient:
         return text
 
     def generate_json(self, prompt: str, system: Optional[str] = None) -> Any:
-        raw = self.generate(prompt, system=system)
-        return parse_json_from_text(raw)
+        return generate_json_with_repair(self.generate, prompt, system)

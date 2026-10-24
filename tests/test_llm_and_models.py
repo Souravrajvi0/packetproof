@@ -11,6 +11,11 @@ def test_parse_json_from_markdown_fence():
     assert parse_json_from_text(raw) == {"ok": True}
 
 
+def test_parse_json_trailing_comma_and_prose():
+    raw = 'Sure.\n{"ok": true, "n": 1,}\nThanks'
+    assert parse_json_from_text(raw)["ok"] is True
+
+
 def test_parse_requirements_response():
     data = [
         {
@@ -25,6 +30,12 @@ def test_parse_requirements_response():
     reqs = parse_requirements_response(data, "instructions.pdf")
     assert len(reqs) == 1
     assert reqs[0].id == "REQ-001"
+
+
+def test_parse_requirements_wrapped_object():
+    wrapped = {"requirements": [{"id": "REQ-002", "description": "GPA 3.0", "category": "eligibility", "expected_evidence": "transcript", "source_page": 1, "quotation": "GPA 3.0"}]}
+    reqs = parse_requirements_response(wrapped, "instructions.pdf")
+    assert reqs[0].id == "REQ-002"
 
 
 def test_invalid_model_response():

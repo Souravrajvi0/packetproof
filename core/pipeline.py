@@ -55,9 +55,13 @@ def run_analysis(
         )
 
     progress("Extracting requirements", 0.2)
-    requirements = extract_requirements(instructions, llm, json_loader=json_loader)
+    try:
+        requirements = extract_requirements(instructions, llm, json_loader=json_loader)
+    except LLMError as exc:
+        warnings.append(f"Requirement extraction had invalid JSON: {exc}")
+        requirements = []
     if not requirements:
-        warnings.append("No requirements were extracted; review the instructions PDF.")
+        warnings.append("No requirements were extracted; review the instruction text.")
 
     progress("Assessing conditional requirements", 0.35)
     applicability = assess_applicability(requirements, app_docs, llm, json_loader=json_loader)

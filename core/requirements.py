@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from core.llm_factory import LLMClient
 from core.schemas import (
+    LLMError,
     ModelResponseValidationError,
     Requirement,
     RequirementCategory,
@@ -53,6 +54,9 @@ Rules:
 
 
 def parse_requirements_response(data: object, source_filename: str) -> list[Requirement]:
+    if isinstance(data, dict):
+        nested = data.get("requirements") or data.get("items") or data.get("data")
+        data = nested if nested is not None else [data]
     if not isinstance(data, list):
         raise ModelResponseValidationError("Expected JSON array of requirements", data)
 
@@ -95,12 +99,11 @@ def extract_requirements(
     json_loader: Optional[Callable[[str, Optional[str]], object]] = None,
 ) -> list[Requirement]:
     prompt = _build_extraction_prompt(instructions_doc)
-    if json_loader:
-        data = json_loader(prompt, SYSTEM_PROMPT)
-    else:
-        data = client.generate_json(prompt, system=SYSTEM_PROMPT)
-
     try:
+        if json_loader:
+            data = json_loader(prompt, SYSTEM_PROMPT)
+        else:
+            data = client.generate_json(prompt, system=SYSTEM_PROMPT)
         return parse_requirements_response(data, instructions_doc.filename)
-    except ValidationError as exc:
-        raise ModelResponseValidationError(str(exc), data) from exc
+    except (LLMError, ValidationError, ModelResponseValidationError) as exc:
+        raise LLMError(f"Could not extract requirements: {exc}") from exc
