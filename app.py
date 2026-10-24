@@ -99,7 +99,11 @@ def sidebar() -> None:
                 st.success("OpenRouter key set")
             else:
                 st.warning("Add your OpenRouter API key")
-            st.caption("PDF text is sent to OpenRouter for inference.")
+            st.warning(
+                "**Cloud mode:** Extracted PDF text is sent to OpenRouter and its model "
+                "providers. Do not use this mode for highly sensitive documents unless you "
+                "accept that policy."
+            )
         else:
             ollama_url = st.text_input("Ollama URL", value="http://127.0.0.1:11434")
             model = st.text_input("Ollama model", value=DEFAULT_MODEL)
@@ -112,7 +116,10 @@ def sidebar() -> None:
                 st.success("Ollama connected")
             else:
                 st.warning("Ollama not reachable — run `ollama pull gemma3:4b`")
-            st.caption("Documents stay on this machine.")
+            st.success(
+                "**Local mode:** Inference runs on this machine via Ollama. PDF text is "
+                "not sent to PacketProof’s cloud or to OpenRouter."
+            )
 
         st.markdown("---")
         if st.button("Clear session", type="secondary"):

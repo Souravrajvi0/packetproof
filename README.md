@@ -2,7 +2,7 @@
 
 **Catch application mistakes before they cost you.**
 
-PacketProof is a privacy-first application inspector for scholarships, universities, grants, internships, jobs, and visas. Upload program instructions and your application PDFs; **local Gemma 3 4B** (via Ollama) extracts requirements, matches evidence, detects inconsistencies, and produces an **evidence-backed** submission readiness report—without sending documents to cloud AI APIs.
+PacketProof is an application inspector for scholarships, universities, grants, internships, jobs, and visas. Upload program instructions and your application PDFs; **Gemma 3 4B** extracts requirements, matches evidence, detects inconsistencies, and produces an **evidence-backed** readiness report. Choose **Ollama** to keep PDF text on your machine, or **OpenRouter** for faster hosted inference (document text is sent to their providers).
 
 Hacktoberfest 2026 theme: **Slow and Steady — AI that rewards laziness.**
 

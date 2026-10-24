@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare PacketProof findings against the demo answer key."""
+"""Compare PacketProof findings against the synthetic answer key."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ import os
 from core.llm_factory import create_llm_client, resolve_provider
 from core.pipeline import run_analysis
 from core.schemas import FindingStatus, LLMError
+from evaluation.planted_match import evaluate_planted_issues
 
 SAMPLES = ROOT / "demo" / "samples"
 ANSWER_KEY = ROOT / "demo" / "answer_key.json"
@@ -43,14 +44,10 @@ def load_demo_files() -> tuple[tuple[str, bytes], list[tuple[str, bytes]]]:
     return requirements, apps
 
 
-def issue_detected(report_text: str, keywords: list[str]) -> bool:
-    lower = report_text.lower()
-    return any(k.lower() in lower for k in keywords)
-
-
 def run_evaluation() -> dict:
     requirements, apps = load_demo_files()
     key = json.loads(ANSWER_KEY.read_text())
+    planted = key.get("planted_issues", [])
 
     provider = resolve_provider(
         "openrouter" if os.environ.get("OPENROUTER_API_KEY") else None
@@ -60,7 +57,7 @@ def run_evaluation() -> dict:
     if not client.is_available():
         return {
             "error": "No LLM available. Set OPENROUTER_API_KEY or start Ollama with gemma3:4b.",
-            "ollama_available": False,
+            "llm_available": False,
             "provider": provider,
         }
 
@@ -68,38 +65,18 @@ def run_evaluation() -> dict:
     try:
         report = run_analysis(requirements, apps, client=client)
     except LLMError as exc:
-        return {"error": str(exc), "ollama_available": True}
+        return {"error": str(exc), "llm_available": True, "provider": provider}
 
     elapsed = time.perf_counter() - start
-
-    combined = json.dumps(report.model_dump(), default=str)
-    planted = key.get("planted_issues", [])
-    detected = 0
-    details = []
-    for issue in planted:
-        kws = issue.get("related_requirement_keywords") or []
-        if issue.get("type") == "contradiction":
-            kws = issue.get("fields", [])
-        found = issue_detected(combined, kws) if kws else False
-        if not found and issue.get("type") == "contradiction":
-            found = len(report.contradictions) > 0
-        if found:
-            detected += 1
-        details.append({"id": issue.get("id"), "detected": found})
+    planted_metrics = evaluate_planted_issues(report, planted)
 
     total_reqs = len(report.findings)
     verified = report.count_by_status(FindingStatus.VERIFIED)
     missing = report.count_by_status(FindingStatus.MISSING)
     review = report.count_by_status(FindingStatus.NEEDS_REVIEW)
 
-    false_positive_proxy = max(0, verified - len(key.get("satisfied_examples", [])))
-    planted_total = len(planted)
-    planted_rate = (detected / planted_total) if planted_total else 0.0
-    classified = verified + missing + review
-    classification_rate = (classified / total_reqs) if total_reqs else 0.0
-
     return {
-        "ollama_available": True,
+        "llm_available": True,
         "provider": provider,
         "requirements_extracted": len(report.requirements),
         "findings_total": total_reqs,
@@ -108,15 +85,24 @@ def run_evaluation() -> dict:
         "needs_review": review,
         "not_applicable": report.count_by_status(FindingStatus.NOT_APPLICABLE),
         "contradictions": len(report.contradictions),
-        "planted_issues_total": planted_total,
-        "planted_issues_detected": detected,
-        "planted_issues_detection_rate": round(planted_rate, 4),
-        "planted_issue_details": details,
-        "false_positive_proxy": false_positive_proxy,
-        "requirements_classified_rate": round(classification_rate, 4),
+        "planted_issues_total": len(planted),
+        "planted_issue_recall": planted_metrics["planted_issue_recall"],
+        "planted_issue_precision": planted_metrics["planted_issue_precision"],
+        "planted_true_positives": planted_metrics["true_positives"],
+        "planted_false_negatives": planted_metrics["false_negatives"],
+        "false_positive_findings_count": planted_metrics["false_positive_findings_count"],
+        "false_positive_findings": planted_metrics["false_positive_findings"],
+        "per_issue": planted_metrics["per_issue"],
+        "requirements_classified_rate": round(
+            (verified + missing + review) / total_reqs if total_reqs else 0.0, 4
+        ),
         "average_analysis_time_seconds": round(report.analysis_duration_seconds, 2),
         "analysis_duration_seconds": report.analysis_duration_seconds,
         "wall_clock_seconds": round(elapsed, 2),
+        "evaluation_note": (
+            "Planted-issue metrics use structured finding/contradiction matching, "
+            "not keyword search over the full report JSON."
+        ),
     }
 
 
