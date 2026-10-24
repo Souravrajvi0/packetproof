@@ -8,7 +8,7 @@ from core.schemas import (
     RequirementCategory,
     SourceReference,
 )
-from core.verifier import build_findings, validate_evidence_match
+from core.verifier import build_findings, validate_evidence_match, validate_source_reference
 
 
 def _req(req_id: str = "REQ-001") -> Requirement:
@@ -70,3 +70,11 @@ def test_invented_quote_rejected():
 def test_date_comparison():
     assert parse_date("2024-05-01") != parse_date("2025-06-01")
     assert vc("graduation_date", "May 2024", "June 2025")
+
+
+def test_requirement_source_page_validation():
+    data = create_text_pdf("req.pdf", ["Transcript required on page one."])
+    doc = extract_pdf_from_bytes("req.pdf", data)
+    ref = SourceReference(filename="req.pdf", page_number=5, quotation="Transcript")
+    notes = validate_source_reference(ref, {"req.pdf": doc})
+    assert any("out of range" in n for n in notes)

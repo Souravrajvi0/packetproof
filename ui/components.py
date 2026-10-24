@@ -72,8 +72,56 @@ def render_overview_metrics(report: AnalysisReport) -> None:
 
     st.caption(
         f"Applicable requirements: {report.applicable_count} · "
+        f"Total extracted: {len(report.requirements)} · "
         f"Analysis time: {report.analysis_duration_seconds:.1f}s"
     )
+
+
+def render_document_coverage(report: AnalysisReport) -> None:
+    if not report.document_coverage:
+        st.caption("No document coverage data yet.")
+        return
+    st.markdown("**Document coverage** (requirements with supported/partial evidence per file)")
+    for filename, count in sorted(report.document_coverage.items()):
+        st.markdown(
+            f'<div class="pp-doc-card"><strong>{html.escape(filename)}</strong> — '
+            f'<span class="pp-muted">{count} requirement match(es)</span></div>',
+            unsafe_allow_html=True,
+        )
+
+
+def render_evidence_inspector(findings: list[VerificationFinding]) -> None:
+    if not findings:
+        st.info("Run analysis to inspect evidence.")
+        return
+    options = {
+        f"{f.requirement_id}: {f.requirement_description[:60]}": f for f in findings
+    }
+    choice = st.selectbox("Select a requirement", list(options.keys()))
+    finding = options[choice]
+    label, badge_class = STATUS_LABELS.get(finding.status, ("Unknown", "pp-badge-na"))
+    st.markdown(f'<span class="pp-badge {badge_class}">{label}</span>', unsafe_allow_html=True)
+    st.markdown("#### Instruction citation")
+    st.code(
+        f"File: {finding.requirement_source.filename}\n"
+        f"Page: {finding.requirement_source.page_number}\n\n"
+        f"{finding.requirement_source.quotation}"
+    )
+    st.markdown("#### Matching evidence")
+    if finding.evidence and (finding.evidence.document_filename or finding.evidence.excerpt):
+        st.code(
+            f"File: {finding.evidence.document_filename or '—'}\n"
+            f"Page: {finding.evidence.page_number or '—'}\n\n"
+            f"{finding.evidence.excerpt or '(no excerpt)'}\n\n"
+            f"Provisional: {finding.evidence.provisional_status.value}"
+        )
+        st.write(finding.evidence.explanation)
+    else:
+        st.warning("No supporting evidence located in uploaded documents.")
+    st.markdown("#### Validated explanation")
+    st.write(finding.explanation)
+    if finding.validation_notes:
+        st.info("Verifier notes: " + "; ".join(finding.validation_notes))
 
 
 def render_finding_row(finding: VerificationFinding, key: str) -> None:

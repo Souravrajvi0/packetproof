@@ -13,6 +13,8 @@ from ui.components import (
     render_action_plan,
     render_contradictions,
     render_document_card,
+    render_document_coverage,
+    render_evidence_inspector,
     render_finding_row,
     render_header,
     render_overview_metrics,
@@ -171,14 +173,15 @@ def step_results() -> None:
 
     st.markdown('<div class="pp-step-label">Step 4 — Review results</div>', unsafe_allow_html=True)
     render_overview_metrics(report)
+    render_document_coverage(report)
 
     if report.warnings:
         with st.expander("Extraction warnings"):
             for w in report.warnings:
                 st.warning(w)
 
-    tab_checklist, tab_issues, tab_contra, tab_plan = st.tabs(
-        ["Checklist", "Issue explorer", "Contradictions", "Action plan"]
+    tab_checklist, tab_issues, tab_evidence, tab_contra, tab_plan = st.tabs(
+        ["Checklist", "Issue explorer", "Evidence inspector", "Contradictions", "Action plan"]
     )
 
     with tab_checklist:
@@ -191,6 +194,9 @@ def step_results() -> None:
         for f in report.findings:
             if f.status.value in selected:
                 render_finding_row(f, f"filter_{f.requirement_id}")
+
+    with tab_evidence:
+        render_evidence_inspector(report.findings)
 
     with tab_contra:
         render_contradictions(report.contradictions)
