@@ -60,6 +60,43 @@ def render_stepper(active: int) -> None:
     st.markdown(f'<div class="pp-stepper">{"".join(cards)}</div>', unsafe_allow_html=True)
 
 
+def render_examples() -> None:
+    st.markdown(
+        """
+        <div class="pp-examples">
+          <div class="pp-ex">
+            <h3>What you can add</h3>
+            <ul>
+              <li>Scholarship or visa instruction PDF</li>
+              <li>Photo of a printed checklist</li>
+              <li>Paste rules from a website</li>
+              <li>Application form, ID, transcript, letter</li>
+            </ul>
+          </div>
+          <div class="pp-ex">
+            <h3>What PacketProof checks</h3>
+            <ul>
+              <li>Missing documents (e.g. no transcript)</li>
+              <li>GPA or score below a stated minimum</li>
+              <li>Dates that conflict (form vs resume)</li>
+              <li>Unsigned declarations, stale letters</li>
+            </ul>
+          </div>
+          <div class="pp-ex">
+            <h3>Example packets</h3>
+            <ul>
+              <li>University / scholarship applications</li>
+              <li>Internships and job packets</li>
+              <li>Grant or visa supporting files</li>
+              <li>Try the built-in Meridian demo below</li>
+            </ul>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_document_card(doc: UploadedDocument) -> None:
     readable = sum(1 for p in doc.pages if p.is_readable)
     status = "Extracted" if readable else "Unreadable"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import streamlit as st
 
@@ -25,6 +26,7 @@ from ui.components import (
     render_evidence_inspector,
     render_finding_row,
     render_header,
+    render_examples,
     render_overview_metrics,
     render_stepper,
 )
@@ -145,6 +147,17 @@ def sidebar() -> None:
 
 
 ACCEPTED_TYPES = ["pdf", "txt", "md", "png", "jpg", "jpeg", "webp", "gif"]
+DEMO_DIR = Path(__file__).resolve().parent / "demo" / "samples"
+EXAMPLE_REQUIREMENTS = """Meridian Future Scholars Program — example rules
+
+1. Submit a completed application form (signed where indicated).
+2. An official academic transcript is required.
+3. Provide a government-issued photo ID copy.
+4. One faculty recommendation letter dated within the last 6 months.
+5. Personal statement, maximum two pages.
+6. Minimum cumulative GPA of 3.0 on a 4.0 scale.
+7. The applicant declaration must be signed and dated.
+"""
 
 
 def _active_client():
@@ -163,6 +176,43 @@ def _active_client():
         ollama_url=st.session_state.get("ollama_url", "http://127.0.0.1:11434"),
         ollama_model=st.session_state.get("ollama_model", DEFAULT_MODEL),
     )
+
+
+def _demo_loader() -> None:
+    with st.expander("Try a ready-made example (Meridian Scholars, fictional)"):
+        st.markdown(
+            "Loads a sample **requirements PDF** plus application form, ID, "
+            "recommendation letter, resume, and personal statement. "
+            "Planted issues: missing transcript, GPA 2.7 vs 3.0, date mismatch, unsigned form."
+        )
+        if st.button("Load demo packet", type="secondary"):
+            req = DEMO_DIR / "meridian_requirements_2026.pdf"
+            if not req.exists():
+                st.error("Demo files missing. Run `python3 demo/generate_samples.py`.")
+                return
+            req_bytes = req.read_bytes()
+            st.session_state["requirements_file"] = (req.name, req_bytes)
+            st.session_state["requirements_doc"] = ingest_bytes(req.name, req_bytes)
+            apps = []
+            docs = []
+            for name in [
+                "application_form.pdf",
+                "resume.pdf",
+                "recommendation_letter.pdf",
+                "photo_id_copy.pdf",
+                "personal_statement.pdf",
+            ]:
+                path = DEMO_DIR / name
+                if path.exists():
+                    data = path.read_bytes()
+                    apps.append((name, data))
+                    docs.append(ingest_bytes(name, data))
+            st.session_state["application_files"] = apps
+            st.session_state["application_docs"] = docs
+            st.success("Demo packet loaded. Click **Analyze application** below.")
+            st.rerun()
+        if st.session_state.get("requirements_file") and st.session_state.get("application_docs"):
+            st.caption("Current packet is loaded. You can still replace files in the upload boxes.")
 
 
 def _preview_doc(doc) -> None:
@@ -200,14 +250,18 @@ def step_requirements() -> None:
                 st.error(str(exc))
         elif not st.session_state.get("requirements_file"):
             st.markdown(
-                '<div class="pp-empty">Screenshots of instruction pages work if Gemma can read the photo.</div>',
+                '<div class="pp-empty">Examples: scholarship_rules.pdf, a phone photo of the '
+                "checklist, or eligibility.txt from the program website.</div>",
                 unsafe_allow_html=True,
             )
     with tab_paste:
+        if st.button("Insert example scholarship rules", key="insert_example_req"):
+            st.session_state["req_paste"] = EXAMPLE_REQUIREMENTS
+            st.rerun()
         pasted = st.text_area(
             "Paste eligibility or instruction text",
             height=180,
-            placeholder="e.g. Applicants must submit a transcript, GPA of 3.0…",
+            placeholder="Example: Applicants must submit a transcript and have a GPA of 3.0…",
             key="req_paste",
         )
         if st.button("Use pasted text", key="use_paste_req"):
@@ -252,7 +306,8 @@ def step_application() -> None:
             render_document_card(doc)
     else:
         st.markdown(
-            '<div class="pp-empty">Form, ID photo, transcript, recommendation, statement…</div>',
+            '<div class="pp-empty">Examples: application_form.pdf, photo_id.jpg, '
+            "recommendation_letter.pdf, resume.pdf.</div>",
             unsafe_allow_html=True,
         )
 
@@ -357,6 +412,8 @@ def main() -> None:
     sidebar()
     render_header()
     render_stepper(_active_step())
+    render_examples()
+    _demo_loader()
     col_a, col_b = st.columns(2)
     with col_a:
         step_requirements()

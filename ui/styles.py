@@ -258,6 +258,33 @@ span[class^="material"],
     font-size: 0.88rem;
     margin-bottom: 0.75rem;
 }
+.pp-examples {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin: 0 0 1.35rem 0;
+}
+.pp-ex {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.95rem 1.05rem;
+}
+.pp-ex h3 {
+    margin: 0 0 0.45rem 0;
+    font-size: 0.92rem;
+    color: #0f172a;
+}
+.pp-ex ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: #475569;
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+@media (max-width: 900px) {
+    .pp-examples { grid-template-columns: 1fr; }
+}
 .pp-muted { color: #64748b; font-size: 0.88rem; }
 
 .pp-doc-card {
