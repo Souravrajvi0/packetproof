@@ -26,21 +26,50 @@ def render_header() -> None:
     st.markdown(
         """
         <div class="pp-header">
-            <h1>PacketProof</h1>
-            <div class="pp-tagline">Catch application mistakes before they cost you.</div>
+            <div class="pp-mark">PP</div>
+            <div>
+                <h1>PacketProof</h1>
+                <div class="pp-tagline">Catch application mistakes before they cost you.</div>
+                <div class="pp-pills">
+                    <span class="pp-pill">Gemma 3 4B</span>
+                    <span class="pp-pill">Evidence-backed</span>
+                    <span class="pp-pill">Ollama or OpenRouter</span>
+                </div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
 
+def render_stepper(active: int) -> None:
+    steps = [
+        (1, "Requirements"),
+        (2, "Documents"),
+        (3, "Analyze"),
+        (4, "Review"),
+        (5, "Export"),
+    ]
+    cards = []
+    for n, title in steps:
+        cls = "pp-step active" if n == active else "pp-step"
+        cards.append(
+            f'<div class="{cls}"><span class="n">Step {n}</span>'
+            f'<span class="t">{title}</span></div>'
+        )
+    st.markdown(f'<div class="pp-stepper">{"".join(cards)}</div>', unsafe_allow_html=True)
+
+
 def render_document_card(doc: UploadedDocument) -> None:
     readable = sum(1 for p in doc.pages if p.is_readable)
+    status = "Extracted" if readable else "Unreadable"
+    badge = "pp-badge-ok" if readable else "pp-badge-warn"
     st.markdown(
         f"""
         <div class="pp-doc-card">
-            <strong>{html.escape(doc.filename)}</strong><br/>
-            <span class="pp-muted">{doc.page_count} pages · {readable} with extractable text</span>
+            <div class="pp-doc-name">{html.escape(doc.filename)}</div>
+            <span class="pp-muted">{doc.page_count} pages · {readable} readable</span>
+            &nbsp;<span class="pp-badge {badge}">{status}</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -64,7 +93,7 @@ def render_overview_metrics(report: AnalysisReport) -> None:
                 f"""
                 <div class="pp-card {css}">
                     <div class="pp-muted">{label}</div>
-                    <div style="font-size:2rem;font-weight:700;color:#0f172a;">{value}</div>
+                    <div style="font-size:2rem;font-weight:700;color:#0f172a;letter-spacing:-0.04em;">{value}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -72,27 +101,32 @@ def render_overview_metrics(report: AnalysisReport) -> None:
 
     st.caption(
         f"Applicable requirements: {report.applicable_count} · "
-        f"Total extracted: {len(report.requirements)} · "
-        f"Analysis time: {report.analysis_duration_seconds:.1f}s"
+        f"Extracted: {len(report.requirements)} · "
+        f"Time: {report.analysis_duration_seconds:.1f}s"
     )
 
 
 def render_document_coverage(report: AnalysisReport) -> None:
     if not report.document_coverage:
-        st.caption("No document coverage data yet.")
         return
-    st.markdown("**Document coverage** (requirements with supported/partial evidence per file)")
-    for filename, count in sorted(report.document_coverage.items()):
-        st.markdown(
-            f'<div class="pp-doc-card"><strong>{html.escape(filename)}</strong> — '
-            f'<span class="pp-muted">{count} requirement match(es)</span></div>',
-            unsafe_allow_html=True,
-        )
+    st.markdown("**Document coverage**")
+    cols = st.columns(min(3, max(1, len(report.document_coverage))))
+    items = sorted(report.document_coverage.items())
+    for i, (filename, count) in enumerate(items):
+        with cols[i % len(cols)]:
+            st.markdown(
+                f'<div class="pp-doc-card"><div class="pp-doc-name">{html.escape(filename)}</div>'
+                f'<span class="pp-muted">{count} match(es)</span></div>',
+                unsafe_allow_html=True,
+            )
 
 
 def render_evidence_inspector(findings: list[VerificationFinding]) -> None:
     if not findings:
-        st.info("Run analysis to inspect evidence.")
+        st.markdown(
+            '<div class="pp-empty">Run analysis to inspect requirement quotations and matching evidence.</div>',
+            unsafe_allow_html=True,
+        )
         return
     options = {
         f"{f.requirement_id}: {f.requirement_description[:60]}": f for f in findings
@@ -100,25 +134,37 @@ def render_evidence_inspector(findings: list[VerificationFinding]) -> None:
     choice = st.selectbox("Select a requirement", list(options.keys()))
     finding = options[choice]
     label, badge_class = STATUS_LABELS.get(finding.status, ("Unknown", "pp-badge-na"))
-    st.markdown(f'<span class="pp-badge {badge_class}">{label}</span>', unsafe_allow_html=True)
-    st.markdown("#### Instruction citation")
-    st.code(
-        f"File: {finding.requirement_source.filename}\n"
-        f"Page: {finding.requirement_source.page_number}\n\n"
-        f"{finding.requirement_source.quotation}"
+    st.markdown(
+        f'<span class="pp-badge {badge_class}">{label}</span>',
+        unsafe_allow_html=True,
     )
-    st.markdown("#### Matching evidence")
-    if finding.evidence and (finding.evidence.document_filename or finding.evidence.excerpt):
-        st.code(
-            f"File: {finding.evidence.document_filename or '—'}\n"
-            f"Page: {finding.evidence.page_number or '—'}\n\n"
-            f"{finding.evidence.excerpt or '(no excerpt)'}\n\n"
-            f"Provisional: {finding.evidence.provisional_status.value}"
+    left, right = st.columns(2)
+    with left:
+        st.markdown("**Instruction citation**")
+        st.markdown(
+            f'<div class="pp-quote">{html.escape(finding.requirement_source.quotation)}</div>',
+            unsafe_allow_html=True,
         )
-        st.write(finding.evidence.explanation)
-    else:
-        st.warning("No supporting evidence located in uploaded documents.")
-    st.markdown("#### Validated explanation")
+        st.caption(
+            f"{finding.requirement_source.filename} · page {finding.requirement_source.page_number}"
+        )
+    with right:
+        st.markdown("**Matching evidence**")
+        if finding.evidence and (finding.evidence.document_filename or finding.evidence.excerpt):
+            st.markdown(
+                f'<div class="pp-quote">{html.escape(finding.evidence.excerpt or "(no excerpt)")}</div>',
+                unsafe_allow_html=True,
+            )
+            st.caption(
+                f"{finding.evidence.document_filename or '—'} · page {finding.evidence.page_number or '—'}"
+            )
+            st.write(finding.evidence.explanation)
+        else:
+            st.markdown(
+                '<div class="pp-empty">Evidence not found in uploaded documents.</div>',
+                unsafe_allow_html=True,
+            )
+    st.markdown("**Validated explanation**")
     st.write(finding.explanation)
     if finding.validation_notes:
         st.info("Verifier notes: " + "; ".join(finding.validation_notes))
@@ -126,22 +172,29 @@ def render_evidence_inspector(findings: list[VerificationFinding]) -> None:
 
 def render_finding_row(finding: VerificationFinding, key: str) -> None:
     label, badge_class = STATUS_LABELS.get(finding.status, ("Unknown", "pp-badge-na"))
-    with st.expander(f"{finding.requirement_id}: {finding.requirement_description[:80]}", expanded=False):
+    title = f"{finding.requirement_id}  ·  {finding.requirement_description[:90]}"
+    with st.expander(title, expanded=False):
         st.markdown(
             f'<span class="pp-badge {badge_class}">{label}</span>',
             unsafe_allow_html=True,
         )
         st.write(finding.explanation)
         st.markdown("**Instruction source**")
-        st.code(
-            f"{finding.requirement_source.filename} · page {finding.requirement_source.page_number}\n"
-            f'"{finding.requirement_source.quotation}"'
+        st.markdown(
+            f'<div class="pp-quote">{html.escape(finding.requirement_source.quotation)}</div>',
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            f"{finding.requirement_source.filename} · page {finding.requirement_source.page_number}"
         )
         if finding.evidence and finding.evidence.document_filename:
             st.markdown("**Evidence**")
-            st.code(
-                f"{finding.evidence.document_filename} · page {finding.evidence.page_number or '?'}\n"
-                f'"{finding.evidence.excerpt or ""}"'
+            st.markdown(
+                f'<div class="pp-quote">{html.escape(finding.evidence.excerpt or "")}</div>',
+                unsafe_allow_html=True,
+            )
+            st.caption(
+                f"{finding.evidence.document_filename} · page {finding.evidence.page_number or '?'}"
             )
         st.markdown(f"**Next action:** {finding.next_action}")
         if finding.validation_notes:
@@ -150,7 +203,11 @@ def render_finding_row(finding: VerificationFinding, key: str) -> None:
 
 def render_contradictions(contradictions: list[Contradiction]) -> None:
     if not contradictions:
-        st.success("No cross-document contradictions were detected.")
+        st.markdown(
+            '<div class="pp-empty">No cross-document contradictions were detected. '
+            "This does not prove authenticity.</div>",
+            unsafe_allow_html=True,
+        )
         return
     for c in contradictions:
         with st.expander(f"{c.id}: {c.description} ({c.severity.value})"):
@@ -169,10 +226,13 @@ def render_action_plan(findings: list[VerificationFinding]) -> None:
         f for f in findings if f.status in (FindingStatus.MISSING, FindingStatus.NEEDS_REVIEW)
     ]
     if not priority:
-        st.write("No urgent actions identified. Review verified items if you want extra confidence.")
+        st.markdown(
+            '<div class="pp-empty">No urgent actions identified. Review verified items for extra confidence.</div>',
+            unsafe_allow_html=True,
+        )
         return
     for i, f in enumerate(priority, 1):
         st.checkbox(
-            f"{i}. [{f.status.value}] {f.requirement_description} — {f.next_action}",
+            f"{i}. [{f.status.value.replace('_', ' ')}] {f.requirement_description} — {f.next_action}",
             key=f"action_{f.requirement_id}",
         )
