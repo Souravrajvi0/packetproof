@@ -94,18 +94,43 @@ span[class^="material"],
 }
 
 .stTabs [data-baseweb="tab-list"] {
-    gap: 0.4rem;
+    gap: 0.35rem;
     background: #eef2f7;
-    padding: 0.35rem;
+    padding: 0.3rem;
     border-radius: 12px;
+    border: none !important;
+}
+.stTabs [data-baseweb="tab-border"],
+.stTabs [data-baseweb="tab-highlight"],
+.stTabs [data-baseweb="tab-border"] {
+    display: none !important;
+    background: transparent !important;
+    height: 0 !important;
 }
 .stTabs [data-baseweb="tab"] {
-    border-radius: 9px;
-    color: #475569;
+    border-radius: 9px !important;
+    color: #475569 !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0.45rem 0.9rem !important;
+}
+.stTabs [data-baseweb="tab"]:focus,
+.stTabs [data-baseweb="tab"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
 }
 .stTabs [aria-selected="true"] {
     background: #ffffff !important;
     color: #0f172a !important;
+    border: none !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08) !important;
+}
+.stTabs button::after,
+.stTabs [data-baseweb="tab"]::after {
+    display: none !important;
+    content: none !important;
+    border: none !important;
 }
 
 .pp-header {
