@@ -54,18 +54,18 @@ Upload the Meridian Future Scholars demo PDFs. The pipeline is real—results ar
 
 ## Measured results
 
-**On the CPU build VM (real Gemma, not mocked):**
+**Measured on Oct 24, 2026 (OpenRouter + `google/gemma-3-4b-it`, demo packet):**
 
-- **16** unit tests passed
-- Requirement extraction on the demo PDF: **11 requirements** in **~13 minutes** (CPU-only EC2)
+- **18** unit tests passed
+- **5/5** planted issues detected (**100%**)
+- **41.1 s** full analysis; **2** verified, **9** needs review, **1** contradiction, **0** false-positive proxy
 - Screenshot: `docs/screenshots/streamlit_home.png`
-- Full pipeline benchmark: run `evaluation/evaluate.py` (allow **1–3+ hours** on CPU; see `evaluation/BENCHMARK.md`)
 
 ```bash
 PYTHONPATH=. python3.11 evaluation/evaluate.py
 ```
 
-Publish `planted_issues_detection_rate` and `average_analysis_time_seconds` from `evaluation/results/latest.json` when the run completes.
+See `evaluation/BENCHMARK.md` and README for full tables.
 
 ## Known failures
 

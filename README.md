@@ -113,13 +113,23 @@ PYTHONPATH=. python3.11 evaluation/evaluate.py
 
 Writes `evaluation/results/latest.json` with planted-issue detection heuristics, finding counts, and analysis duration.
 
-### Measured results (CPU build VM, Oct 2026)
+### Measured results (Oct 24, 2026)
+
+Reproduce: `PYTHONPATH=. python3.11 evaluation/evaluate.py` with `OPENROUTER_API_KEY` in `.env`.
 
 | Metric | Result |
 |--------|--------|
-| Unit tests | **16 passed** (`PYTHONPATH=. python3.11 -m pytest`) |
-| Gemma requirement extraction (demo PDF) | **11 requirements** in **~13 min** (CPU-only EC2) |
-| Full `evaluate.py` | **Slow on CPU** — use GPU machine or allow 1–3+ hours; see `evaluation/BENCHMARK.md` |
+| Unit tests | **18 passed** |
+| Provider | **OpenRouter** — `google/gemma-3-4b-it` |
+| Requirements extracted | **11** |
+| Findings (verified / missing / needs review / N/A) | **2 / 0 / 9 / 0** |
+| Contradictions detected | **1** |
+| Planted issues detected (of 5 in answer key) | **5 / 5 (100%)** |
+| False-positive proxy (verified − known satisfied) | **0** |
+| Requirements classified rate | **100%** (11/11 with a status) |
+| Average analysis time | **41.1 s** (wall clock **41.1 s**) |
+
+Ollama on the same CPU-only VM: requirement extraction alone took **~13 min**; full local `evaluate.py` was impractical without a GPU.
 
 Repository: https://github.com/Souravrajvi0/packetproof
 

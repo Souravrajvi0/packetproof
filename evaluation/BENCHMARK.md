@@ -1,38 +1,40 @@
 # PacketProof benchmarks (measured)
 
-Environment: AWS EC2 **CPU-only** (no GPU), `gemma3:4b` via Ollama, Oct 24, 2026.
+## Full pipeline — OpenRouter (primary, Oct 24, 2026)
 
-## Verified end-to-end inference
-
-| Step | Result | Wall time |
-|------|--------|-----------|
-| Ollama + `gemma3:4b` pull | Success | ~30s download |
-| Requirement extraction (Meridian demo PDF) | **11 requirements** extracted | **792.8 s (~13.2 min)** |
-| Full `evaluate.py` (entire pipeline) | **In progress / long-running on CPU** | Expect **1–3+ hours** (many sequential LLM calls) |
-
-Smoke command (reproducible):
-
-```bash
-PYTHONPATH=. python3.11 -c "
-from pathlib import Path
-from core.llm_client import OllamaClient
-from core.pdf_processor import extract_pdf_from_bytes
-from core.requirements import extract_requirements
-doc = extract_pdf_from_bytes('meridian_requirements_2026.pdf', Path('demo/samples/meridian_requirements_2026.pdf').read_bytes())
-print(len(extract_requirements(doc, OllamaClient(timeout=1800.0))))
-"
-```
-
-## Full evaluation
+Command (`.env` with `OPENROUTER_API_KEY`):
 
 ```bash
 PYTHONPATH=. python3.11 evaluation/evaluate.py
 ```
 
-Uses `OllamaClient(timeout=1800.0)` per request. On a machine with a GPU, times are typically much lower.
+| Metric | Value |
+|--------|-------|
+| Provider | `openrouter` |
+| Model | `google/gemma-3-4b-it` |
+| Requirements extracted | 11 |
+| Findings total | 11 |
+| Verified | 2 |
+| Missing | 0 |
+| Needs review | 9 |
+| Not applicable | 0 |
+| Contradictions | 1 |
+| Planted issues detected | 5 / 5 |
+| Planted issues detection rate | 1.0 |
+| False-positive proxy | 0 |
+| Requirements classified rate | 1.0 |
+| Analysis duration | 41.13 s |
+| Wall clock | 41.13 s |
 
-Results file: `evaluation/results/latest.json` (gitignored; not committed).
+Planted issue IDs (all `detected: true`): ISSUE-001 … ISSUE-005.
 
-## First failed run
+Raw output: `evaluation/results/latest.json` (gitignored).
 
-An earlier run failed with `Ollama request timed out` at the default **300s** client timeout. Timeout was increased to **1200s** default / **1800s** in `evaluate.py`.
+## Ollama smoke test — CPU-only EC2
+
+| Step | Result | Wall time |
+|------|--------|-----------|
+| `ollama pull gemma3:4b` | Success | ~30 s download |
+| Requirement extraction only (Meridian PDF) | 11 requirements | **792.8 s (~13.2 min)** |
+
+Full `evaluate.py` via Ollama on this VM previously hit **request timeouts**; use OpenRouter or a GPU machine for end-to-end local benchmarks.
