@@ -117,19 +117,23 @@ Writes `evaluation/results/latest.json` with planted-issue detection heuristics,
 
 Reproduce: `PYTHONPATH=. python3.11 evaluation/evaluate.py` with `OPENROUTER_API_KEY` in `.env`.
 
+Metrics use **structured matching** (`evaluation/planted_match.py`): each planted issue must map to a specific finding or contradiction with required status and explanation cues—not keyword search over the full JSON.
+
 | Metric | Result |
 |--------|--------|
-| Unit tests | **18 passed** |
+| Unit tests | **21 passed** |
 | Provider | **OpenRouter** — `google/gemma-3-4b-it` |
 | Requirements extracted | **11** |
 | Findings (verified / missing / needs review / N/A) | **2 / 0 / 9 / 0** |
 | Contradictions detected | **1** |
-| Planted issues detected (of 5 in answer key) | **5 / 5 (100%)** |
-| False-positive proxy (verified − known satisfied) | **0** |
-| Requirements classified rate | **100%** (11/11 with a status) |
-| Average analysis time | **41.1 s** (wall clock **41.1 s**) |
+| **Planted issue recall** | **3 / 5 (60%)** |
+| **Planted issue precision** | **33%** (3 TP vs 6 extra problem-flagged findings on other topics) |
+| Analysis time | **~41 s** |
 
-Ollama on the same CPU-only VM: requirement extraction alone took **~13 min**; full local `evaluate.py` was impractical without a GPU.
+**Detected (TP):** graduation contradiction, unsigned declaration, GPA below threshold.  
+**Missed (FN):** missing transcript (marked needs review, not “missing”), stale recommendation (incorrectly **verified**).  
+
+Earlier “5/5” figures used loose keyword matching and **overstated** accuracy; the rigor fix is intentional.
 
 Repository: https://github.com/Souravrajvi0/packetproof
 

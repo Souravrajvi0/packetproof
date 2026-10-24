@@ -1,88 +1,62 @@
-# DEV.to draft — PacketProof
+# DEV.to — PacketProof (Hacktoberfest Week 3 draft)
 
-**Title:** PacketProof: local Gemma does the boring scholarship paperwork audit
+**Title:** I built PacketProof so Gemma catches scholarship paperwork mistakes—with receipts
 
-**Tags:** `opensource`, `ai`, `python`, `hacktoberfest`, `gemma`
+**Tags:** `#hacktoberfest` `#opensource` `#ai` `#python` `#gemma`
 
 ---
 
-## The manual work PacketProof removes
+## What problem does this solve?
 
-Before submitting a scholarship or grant packet, applicants usually:
+Application packets are a checklist nightmare: transcripts, signatures, date windows, GPA floors. PacketProof reads your **requirements PDF** and **application PDFs**, uses **Gemma 3 4B** to extract requirements and match evidence, then a **Python verifier** checks that cited pages and quotes exist before anything is labeled verified.
 
-- Re-read a dense requirements PDF
-- Match every bullet to files on disk
-- Compare names, dates, and GPA across forms
-- Check recommendation letter dates and signatures
+## Theme: Slow and Steady
 
-That is repetitive, tiring, and easy to mess up under a deadline.
+Local **Ollama** mode avoids shipping PDFs to the cloud. **OpenRouter** mode uses the same model (`google/gemma-3-4b-it`) when you want speed—clearly labeled **cloud** in the UI.
 
-## Why that work is painful
+## How it works
 
-One missing transcript or unsigned declaration can disqualify a strong candidate. Conflicting graduation dates look careless even when they are typos. Policy windows (e.g. “letter within six months”) are easy to overlook.
+1. PyMuPDF extracts text (warns on image-only pages).
+2. Gemma extracts atomic requirements with source quotes.
+3. Per requirement: semantic evidence match + quote validation.
+4. Contradiction pass on names, dates, GPA, etc.
+5. Dashboard: verified / missing / needs review + HTML export.
 
-Humans are poor at exhaustive checklist labor. Models can help **only if** conclusions cite real evidence—not vibes.
+![PacketProof home](docs/screenshots/streamlit_home.png)
 
-## How PacketProof works
+## Measured results (honest)
 
-1. Upload the **instructions PDF** and **application PDFs**.
-2. PyMuPDF extracts text (with warnings for image-only pages).
-3. **Gemma 3 4B via Ollama** extracts atomic requirements with source quotes.
-4. For each requirement, Gemma proposes evidence (file, page, excerpt).
-5. A **Python verifier** checks that pages exist and quotes appear in extracted text.
-6. A separate pass extracts fields and runs **deterministic** contradiction checks.
-7. Streamlit shows verified / missing / needs review, an evidence inspector, and a downloadable HTML report.
+Structured evaluation on the Meridian demo (`evaluation/planted_match.py`):
 
-No “approved” stamp—just what was found, what was not, and what needs human review.
+| Metric | Result |
+|--------|--------|
+| Planted issue recall | **60%** (3/5) |
+| Planted issue precision | **33%** |
+| Analysis time (OpenRouter) | **~41 s** |
 
-## Why Gemma and open-source AI
+**Caught:** graduation date conflict, unsigned declaration, GPA below 3.0.  
+**Missed:** missing transcript (soft needs_review), stale recommendation (wrongly verified).
 
-Application packets contain PII. Shipping them to a hosted API is often unacceptable.
+We previously reported 5/5 using keyword search over the report JSON—that was **misleading** and is fixed.
 
-**Gemma** through **Ollama** gives private, local inference, no per-document API fees, and the freedom to change models. That matches Hacktoberfest **Slow and Steady**: let local AI do the lazy-person’s document cross-check.
+## Limitations
 
-## Demonstration
+- Model can verify the wrong thing confidently (see recommendation letter).
+- Needs review ≠ missing; conservative by design.
+- No OCR; text PDFs only.
+
+## Try it
+
+https://github.com/Souravrajvi0/packetproof
 
 ```bash
 pip install -r requirements.txt
-ollama pull gemma3:4b
-python3.11 demo/generate_samples.py
+cp .env.example .env   # OPENROUTER_API_KEY optional
 streamlit run app.py
 ```
 
-Upload the Meridian Future Scholars demo PDFs. The pipeline is real—results are not hardcoded from `demo/answer_key.json`.
+**Video:** See `docs/VIDEO_STORYBOARD.md` — record 60–90 s and embed here before publish.
 
-## Measured results
+## Best Use of Gemma
 
-**Measured on Oct 24, 2026 (OpenRouter + `google/gemma-3-4b-it`, demo packet):**
-
-- **18** unit tests passed
-- **5/5** planted issues detected (**100%**)
-- **41.1 s** full analysis; **2** verified, **9** needs review, **1** contradiction, **0** false-positive proxy
-- Screenshot: `docs/screenshots/streamlit_home.png`
-
-```bash
-PYTHONPATH=. python3.11 evaluation/evaluate.py
-```
-
-See `evaluation/BENCHMARK.md` and README for full tables.
-
-## Known failures
-
-- Scanned PDFs without text layers need OCR (not in MVP).
-- Invented model quotes are caught and downgraded to **Needs review**.
-- Semantic matching can confuse similar document types.
-
-## Lessons learned
-
-1. A **verification layer** between the model and the user is essential.
-2. **Conservative copy** (“evidence not found”) beats false confidence.
-3. One Gemma call per requirement is simple to debug but not fast—batching is the next step.
-
-## Screenshots
-
-Add Streamlit screenshots from your local run before publishing.
-
-## Repository
-
-`<your-github-url>/packetproof`
+Open-weight Gemma via Ollama or OpenRouter; evidence validation is the differentiator from a generic chat wrapper.
