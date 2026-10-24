@@ -136,13 +136,14 @@ span[class^="material"],
 .pp-header {
     background: linear-gradient(135deg, #0b1224 0%, #163054 55%, #115e59 140%);
     color: #f8fafc;
-    padding: 1.75rem 2rem;
-    border-radius: 18px;
-    margin-bottom: 1.25rem;
+    padding: 2rem 2.2rem;
+    border-radius: 20px;
+    margin-bottom: 1rem;
     border: 1px solid #1e3a5f;
     display: flex;
     gap: 1.25rem;
     align-items: center;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
 }
 .pp-mark {
     width: 52px;
@@ -160,14 +161,22 @@ span[class^="material"],
 }
 .pp-header h1 {
     margin: 0;
-    font-size: 1.85rem;
+    font-size: 2rem;
     font-weight: 700;
     letter-spacing: -0.03em;
 }
+.pp-eyebrow {
+    color: #5eead4;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    margin-bottom: 0.2rem;
+}
 .pp-tagline {
-    color: #94a3b8;
+    color: #cbd5e1;
     margin-top: 0.35rem;
     font-size: 1rem;
+    max-width: 700px;
 }
 .pp-pills {
     margin-top: 0.7rem;
@@ -188,15 +197,15 @@ span[class^="material"],
 .pp-stepper {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 0.5rem;
-    margin: 0 0 1.4rem 0;
+    gap: 0.4rem;
+    margin: 0 0 0.8rem 0;
 }
 .pp-step {
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 0.7rem 0.85rem;
-    min-height: 72px;
+    border-radius: 10px;
+    padding: 0.55rem 0.75rem;
+    min-height: 56px;
 }
 .pp-step.active {
     border-color: #14b8a6;
@@ -258,32 +267,62 @@ span[class^="material"],
     font-size: 0.88rem;
     margin-bottom: 0.75rem;
 }
-.pp-examples {
+.pp-capabilities {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-    margin: 0 0 1.35rem 0;
-}
-.pp-ex {
+    grid-template-columns: 1.3fr repeat(4, 1fr);
+    gap: 0;
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 14px;
-    padding: 0.95rem 1.05rem;
+    margin: 0 0 0.9rem 0;
+    overflow: hidden;
 }
-.pp-ex h3 {
-    margin: 0 0 0.45rem 0;
-    font-size: 0.92rem;
+.pp-cap-intro, .pp-cap {
+    padding: 0.8rem 0.9rem;
+    min-height: 62px;
+}
+.pp-cap-intro {
+    background: #f8fafc;
+}
+.pp-cap-intro strong {
+    display: block;
+    margin-top: 0.15rem;
     color: #0f172a;
-}
-.pp-ex ul {
-    margin: 0;
-    padding-left: 1.1rem;
-    color: #475569;
     font-size: 0.84rem;
-    line-height: 1.45;
+}
+.pp-cap-kicker {
+    color: #0d9488;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+.pp-cap {
+    border-left: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+.pp-cap > span {
+    color: #0d9488;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+.pp-cap strong {
+    display: block;
+    color: #0f172a;
+    font-size: 0.78rem;
+}
+.pp-cap small {
+    display: block;
+    color: #64748b;
+    font-size: 0.68rem;
+    margin-top: 0.12rem;
 }
 @media (max-width: 900px) {
-    .pp-examples { grid-template-columns: 1fr; }
+    .pp-capabilities { grid-template-columns: 1fr 1fr; }
+    .pp-cap-intro { grid-column: 1 / -1; }
+    .pp-cap:nth-child(odd) { border-left: none; }
+    .pp-stepper { grid-template-columns: repeat(5, minmax(80px, 1fr)); overflow-x: auto; }
 }
 .pp-muted { color: #64748b; font-size: 0.88rem; }
 

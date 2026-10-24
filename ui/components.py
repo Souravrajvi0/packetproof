@@ -28,12 +28,13 @@ def render_header() -> None:
         <div class="pp-header">
             <div class="pp-mark">PP</div>
             <div>
+                <div class="pp-eyebrow">AI APPLICATION INSPECTOR</div>
                 <h1>PacketProof</h1>
-                <div class="pp-tagline">Catch application mistakes before they cost you.</div>
+                <div class="pp-tagline">Catch missing evidence, conflicting details, and submission mistakes before they cost you.</div>
                 <div class="pp-pills">
                     <span class="pp-pill">Gemma 3 4B</span>
-                    <span class="pp-pill">Evidence-backed</span>
-                    <span class="pp-pill">Ollama or OpenRouter</span>
+                    <span class="pp-pill">Cited evidence</span>
+                    <span class="pp-pill">Local or hosted</span>
                 </div>
             </div>
         </div>
@@ -63,34 +64,15 @@ def render_stepper(active: int) -> None:
 def render_examples() -> None:
     st.markdown(
         """
-        <div class="pp-examples">
-          <div class="pp-ex">
-            <h3>What you can add</h3>
-            <ul>
-              <li>Scholarship or visa instruction PDF</li>
-              <li>Photo of a printed checklist</li>
-              <li>Paste rules from a website</li>
-              <li>Application form, ID, transcript, letter</li>
-            </ul>
+        <div class="pp-capabilities">
+          <div class="pp-cap-intro">
+            <span class="pp-cap-kicker">WHAT IT CATCHES</span>
+            <strong>One review, four common mistakes</strong>
           </div>
-          <div class="pp-ex">
-            <h3>What PacketProof checks</h3>
-            <ul>
-              <li>Missing documents (e.g. no transcript)</li>
-              <li>GPA or score below a stated minimum</li>
-              <li>Dates that conflict (form vs resume)</li>
-              <li>Unsigned declarations, stale letters</li>
-            </ul>
-          </div>
-          <div class="pp-ex">
-            <h3>Example packets</h3>
-            <ul>
-              <li>University / scholarship applications</li>
-              <li>Internships and job packets</li>
-              <li>Grant or visa supporting files</li>
-              <li>Try the built-in Meridian demo below</li>
-            </ul>
-          </div>
+          <div class="pp-cap"><span>01</span><div><strong>Missing files</strong><small>Transcript or ID not found</small></div></div>
+          <div class="pp-cap"><span>02</span><div><strong>Conflicting facts</strong><small>Dates, names, scores</small></div></div>
+          <div class="pp-cap"><span>03</span><div><strong>Eligibility gaps</strong><small>GPA below requirement</small></div></div>
+          <div class="pp-cap"><span>04</span><div><strong>Form issues</strong><small>Unsigned or stale evidence</small></div></div>
         </div>
         """,
         unsafe_allow_html=True,

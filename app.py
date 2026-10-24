@@ -179,7 +179,7 @@ def _active_client():
 
 
 def _demo_loader() -> None:
-    with st.expander("Try a ready-made example (Meridian Scholars, fictional)"):
+    with st.expander("No files ready? Load the fictional Meridian Scholars demo"):
         st.markdown(
             "Loads a sample **requirements PDF** plus application form, ID, "
             "recommendation letter, resume, and personal statement. "
@@ -188,7 +188,10 @@ def _demo_loader() -> None:
         if st.button("Load demo packet", type="secondary"):
             req = DEMO_DIR / "meridian_requirements_2026.pdf"
             if not req.exists():
-                st.error("Demo files missing. Run `python3 demo/generate_samples.py`.")
+                from demo.generate_samples import main as gen_demo
+                gen_demo()
+            if not req.exists():
+                st.error("Could not generate demo PDFs.")
                 return
             req_bytes = req.read_bytes()
             st.session_state["requirements_file"] = (req.name, req_bytes)
@@ -416,11 +419,14 @@ def main() -> None:
     _demo_loader()
     col_a, col_b = st.columns(2)
     with col_a:
-        step_requirements()
+        with st.container(border=True):
+            step_requirements()
     with col_b:
-        step_application()
+        with st.container(border=True):
+            step_application()
     st.markdown("")
-    step_analyze()
+    with st.container(border=True):
+        step_analyze()
     step_results()
     st.markdown(
         '<div class="pp-footer">PacketProof · Gemma 3 4B · Evidence-backed review · Not legal advice</div>',
