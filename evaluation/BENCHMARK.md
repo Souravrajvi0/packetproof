@@ -1,6 +1,8 @@
 # PacketProof benchmarks (measured)
 
-## Full pipeline — OpenRouter (`google/gemma-3-4b-it`)
+## Full pipeline — Gemma 3 4B (evaluation harness)
+
+Public docs assume **Ollama (`gemma3:4b`)**. Numbers below from one Gemma 3 4B run of `evaluate.py`.
 
 ```bash
 PYTHONPATH=. python3.11 evaluation/evaluate.py

@@ -49,9 +49,7 @@ def run_evaluation() -> dict:
     key = json.loads(ANSWER_KEY.read_text())
     planted = key.get("planted_issues", [])
 
-    provider = resolve_provider(
-        "openrouter" if os.environ.get("OPENROUTER_API_KEY") else None
-    )
+    provider = resolve_provider()
     timeout = 600.0 if provider == "openrouter" else 1800.0
     client = create_llm_client(provider, timeout=timeout)
     if not client.is_available():

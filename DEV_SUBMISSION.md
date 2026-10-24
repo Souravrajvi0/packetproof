@@ -1,49 +1,53 @@
 # DEV.to — PacketProof (Hacktoberfest Week 3 draft)
 
-**Title:** I built PacketProof so Gemma catches scholarship paperwork mistakes—with receipts
+**Title:** PacketProof: local Gemma catches scholarship mistakes—with PDF receipts
 
 **Tags:** `#hacktoberfest` `#opensource` `#ai` `#python` `#gemma`
 
+**Category:** Best Use of Gemma
+
 ---
 
-## What problem does this solve?
+## The boring work nobody wants to do
 
-Application packets are a checklist nightmare: transcripts, signatures, date windows, GPA floors. PacketProof reads your **requirements PDF** and **application PDFs**, uses **Gemma 3 4B** to extract requirements and match evidence, then a **Python verifier** checks that cited pages and quotes exist before anything is labeled verified.
+Before you submit a scholarship packet, you re-read a long requirements PDF and cross-check every file: transcript, signatures, recommendation dates, GPA floors. One miss can disqualify you. I built **PacketProof** to automate that checklist.
 
-## Theme: Slow and Steady
+## Slow and Steady (local AI)
 
-Local **Ollama** mode avoids shipping PDFs to the cloud. **OpenRouter** mode uses the same model (`google/gemma-3-4b-it`) when you want speed—clearly labeled **cloud** in the UI.
+PacketProof runs **Google Gemma 3 4B locally via Ollama**. Your PDFs stay on your machine. No paid chat API. Open-weight Gemma is the engine—not decoration—because application data is sensitive and document review is repetitive work AI should absorb.
 
-## How it works
+## How it’s different from a chatbot
 
-1. PyMuPDF extracts text (warns on image-only pages).
-2. Gemma extracts atomic requirements with source quotes.
-3. Per requirement: semantic evidence match + quote validation.
-4. Contradiction pass on names, dates, GPA, etc.
-5. Dashboard: verified / missing / needs review + HTML export.
+Every finding ties to **evidence**: instruction quote, candidate filename, page, and excerpt. A Python layer checks that pages exist and quotes appear in extracted text before anything is “verified.” If the model hallucinates a citation, the UI says **needs review**—not “you’re approved.”
 
-![PacketProof home](docs/screenshots/streamlit_home.png)
+![PacketProof](docs/screenshots/streamlit_home.png)
 
-## Measured results (honest)
+**Demo flow (record this for video):**
 
-Structured evaluation on the Meridian demo (`evaluation/planted_match.py`):
+1. Upload Meridian demo requirements + application PDFs  
+2. Analyze with **Ollama + gemma3:4b**  
+3. Open **Evidence inspector** — show graduation contradiction or GPA finding with quotes  
+4. Download HTML report  
+
+Storyboard: `docs/VIDEO_STORYBOARD.md`
+
+## Honest benchmark (Meridian demo)
+
+Structured evaluation (`evaluation/planted_match.py`):
 
 | Metric | Result |
 |--------|--------|
 | Planted issue recall | **60%** (3/5) |
 | Planted issue precision | **33%** |
-| Analysis time (OpenRouter) | **~41 s** |
+| Analysis time | **~41 s** on Gemma 3 4B |
 
-**Caught:** graduation date conflict, unsigned declaration, GPA below 3.0.  
-**Missed:** missing transcript (soft needs_review), stale recommendation (wrongly verified).
-
-We previously reported 5/5 using keyword search over the report JSON—that was **misleading** and is fixed.
+We fixed an earlier inflated “5/5” score that used loose keyword matching. Real recall is lower—that’s the point of measuring properly.
 
 ## Limitations
 
-- Model can verify the wrong thing confidently (see recommendation letter).
-- Needs review ≠ missing; conservative by design.
-- No OCR; text PDFs only.
+- Text PDFs only; no OCR yet  
+- “Needs review” is common (conservative by design)  
+- Recommendation letter was once **verified** when it should have been flagged—shows why humans still matter  
 
 ## Try it
 
@@ -51,12 +55,10 @@ https://github.com/Souravrajvi0/packetproof
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env   # OPENROUTER_API_KEY optional
+ollama pull gemma3:4b
 streamlit run app.py
 ```
 
-**Video:** See `docs/VIDEO_STORYBOARD.md` — record 60–90 s and embed here before publish.
-
 ## Best Use of Gemma
 
-Open-weight Gemma via Ollama or OpenRouter; evidence validation is the differentiator from a generic chat wrapper.
+Local **gemma3:4b** + evidence validation = private, portable, open-source document review for real application packets.

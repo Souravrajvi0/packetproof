@@ -67,59 +67,52 @@ def _secret_openrouter_key() -> str:
         return ""
 
 
+def _effective_provider() -> str:
+    env_mode = os.environ.get("PACKETPROOF_INFERENCE", "").strip().lower()
+    if env_mode == "openrouter" and (
+        os.environ.get("OPENROUTER_API_KEY") or _secret_openrouter_key()
+    ):
+        return "openrouter"
+    return st.session_state.get("llm_provider", "ollama")
+
+
 def sidebar() -> None:
     with st.sidebar:
-        st.markdown("### Inference")
-        default_provider = (
-            "openrouter"
-            if os.environ.get("OPENROUTER_API_KEY") or _secret_openrouter_key()
-            else "ollama"
-        )
-        provider = st.radio(
-            "Provider",
-            options=["openrouter", "ollama"],
-            format_func=lambda x: "OpenRouter (Gemma 3 4B cloud)" if x == "openrouter" else "Ollama (local)",
-            index=0 if default_provider == "openrouter" else 1,
-        )
-        st.session_state["llm_provider"] = provider
+        st.markdown("### Local AI (Gemma)")
+        ollama_url = st.text_input("Ollama URL", value="http://127.0.0.1:11434")
+        model = st.text_input("Model", value=DEFAULT_MODEL)
+        st.session_state["ollama_url"] = ollama_url
+        st.session_state["ollama_model"] = model
+        st.session_state["llm_provider"] = "ollama"
 
-        if provider == "openrouter":
-            env_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-            default_key = env_key or _secret_openrouter_key()
+        probe = create_llm_client(
+            "ollama", ollama_url=ollama_url, ollama_model=model, timeout=5.0
+        )
+        if probe.is_available():
+            st.success("Ollama connected — Gemma runs on this machine")
+        else:
+            st.warning("Start Ollama and run `ollama pull gemma3:4b`")
+
+        st.caption(
+            "PacketProof is built for **local open-weight inference**. PDF text stays on "
+            "your machine when using Ollama."
+        )
+
+        if _effective_provider() == "openrouter":
+            st.caption("Configured backend: Gemma 3 4B (maintainer env).")
+
+        with st.expander("Optional cloud backend (development only)"):
+            st.caption("Not part of the Hacktoberfest demo path. Sends PDF text off-device.")
             api_key = st.text_input(
-                "OpenRouter API key",
-                value=default_key,
+                "API key",
+                value=os.environ.get("OPENROUTER_API_KEY", "") or _secret_openrouter_key(),
                 type="password",
-                help="Set OPENROUTER_API_KEY env var to avoid pasting here.",
             )
-            or_model = st.text_input("OpenRouter model", value=DEFAULT_OPENROUTER_MODEL)
+            or_model = st.text_input("Model ID", value=DEFAULT_OPENROUTER_MODEL)
             st.session_state["openrouter_api_key"] = api_key
             st.session_state["openrouter_model"] = or_model
-            if api_key:
-                st.success("OpenRouter key set")
-            else:
-                st.warning("Add your OpenRouter API key")
-            st.warning(
-                "**Cloud mode:** Extracted PDF text is sent to OpenRouter and its model "
-                "providers. Do not use this mode for highly sensitive documents unless you "
-                "accept that policy."
-            )
-        else:
-            ollama_url = st.text_input("Ollama URL", value="http://127.0.0.1:11434")
-            model = st.text_input("Ollama model", value=DEFAULT_MODEL)
-            st.session_state["ollama_url"] = ollama_url
-            st.session_state["ollama_model"] = model
-            probe = create_llm_client(
-                "ollama", ollama_url=ollama_url, ollama_model=model, timeout=5.0
-            )
-            if probe.is_available():
-                st.success("Ollama connected")
-            else:
-                st.warning("Ollama not reachable — run `ollama pull gemma3:4b`")
-            st.success(
-                "**Local mode:** Inference runs on this machine via Ollama. PDF text is "
-                "not sent to PacketProof’s cloud or to OpenRouter."
-            )
+            if st.checkbox("Use cloud backend for this session"):
+                st.session_state["llm_provider"] = "openrouter"
 
         st.markdown("---")
         if st.button("Clear session", type="secondary"):
@@ -195,7 +188,7 @@ def step_analyze() -> None:
             progress_bar.progress(min(1.0, max(0.0, fraction)))
             status.markdown(f"**{stage}**")
 
-        provider = st.session_state.get("llm_provider", "ollama")
+        provider = _effective_provider()
         if provider == "openrouter":
             client = create_llm_client(
                 "openrouter",

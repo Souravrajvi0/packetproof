@@ -31,6 +31,7 @@ def create_llm_client(
 def resolve_provider(preferred: Provider | None = None) -> Provider:
     if preferred:
         return preferred
-    if os.environ.get("OPENROUTER_API_KEY", "").strip():
+    mode = os.environ.get("PACKETPROOF_INFERENCE", "ollama").strip().lower()
+    if mode == "openrouter" and os.environ.get("OPENROUTER_API_KEY", "").strip():
         return "openrouter"
     return "ollama"
