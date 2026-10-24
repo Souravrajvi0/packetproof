@@ -135,6 +135,7 @@ def build_findings(
     matches: list[EvidenceMatch],
     instructions_doc: UploadedDocument,
     application_docs: list[UploadedDocument],
+    applicability: dict[str, tuple[bool, str]] | None = None,
 ) -> list[VerificationFinding]:
     doc_map: dict[str, UploadedDocument] = {
         instructions_doc.filename: instructions_doc,
@@ -145,7 +146,25 @@ def build_findings(
     match_by_id = {m.requirement_id: m for m in matches}
     findings: list[VerificationFinding] = []
 
+    applicability = applicability or {}
+
     for req in requirements:
+        app_assess = applicability.get(req.id)
+        if app_assess is not None and not app_assess[0]:
+            findings.append(
+                VerificationFinding(
+                    requirement_id=req.id,
+                    requirement_description=req.description,
+                    status=FindingStatus.NOT_APPLICABLE,
+                    explanation=app_assess[1],
+                    requirement_source=req.source,
+                    evidence=None,
+                    next_action="No action required for this applicant based on available documents.",
+                    validation_notes=[],
+                )
+            )
+            continue
+
         match = match_by_id.get(
             req.id,
             EvidenceMatch(

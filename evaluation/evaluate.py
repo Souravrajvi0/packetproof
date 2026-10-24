@@ -82,6 +82,10 @@ def run_evaluation() -> dict:
     review = report.count_by_status(FindingStatus.NEEDS_REVIEW)
 
     false_positive_proxy = max(0, verified - len(key.get("satisfied_examples", [])))
+    planted_total = len(planted)
+    planted_rate = (detected / planted_total) if planted_total else 0.0
+    classified = verified + missing + review
+    classification_rate = (classified / total_reqs) if total_reqs else 0.0
 
     return {
         "ollama_available": True,
@@ -90,13 +94,17 @@ def run_evaluation() -> dict:
         "verified": verified,
         "missing": missing,
         "needs_review": review,
+        "not_applicable": report.count_by_status(FindingStatus.NOT_APPLICABLE),
         "contradictions": len(report.contradictions),
-        "planted_issues_total": len(planted),
+        "planted_issues_total": planted_total,
         "planted_issues_detected": detected,
+        "planted_issues_detection_rate": round(planted_rate, 4),
         "planted_issue_details": details,
         "false_positive_proxy": false_positive_proxy,
+        "requirements_classified_rate": round(classification_rate, 4),
+        "average_analysis_time_seconds": round(report.analysis_duration_seconds, 2),
         "analysis_duration_seconds": report.analysis_duration_seconds,
-        "wall_clock_seconds": elapsed,
+        "wall_clock_seconds": round(elapsed, 2),
     }
 
 

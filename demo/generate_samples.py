@@ -33,7 +33,12 @@ Applicants must be graduating high school or equivalent in 2025 or 2026.
 All documents must be submitted as PDF unless otherwise noted.
 The applicant declaration on the final page of the application form must be signed and dated.
 
-4. DEADLINE
+4. CONDITIONAL REQUIREMENTS
+International applicants (non-U.S. citizens without permanent residency) must submit
+proof of English proficiency (TOEFL or IELTS). This requirement does not apply to
+applicants who are U.S. citizens or permanent residents.
+
+5. DEADLINE
 Complete packets are due by March 15, 2026.
 """,
     ]

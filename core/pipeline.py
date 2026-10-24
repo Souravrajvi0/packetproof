@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from typing import Callable, Optional
 
+from core.applicability import assess_applicability
 from core.contradictions import detect_contradictions
 from core.evidence import match_all_evidence
 from core.llm_client import OllamaClient
@@ -58,13 +59,19 @@ def run_analysis(
     if not requirements:
         warnings.append("No requirements were extracted; review the instructions PDF.")
 
+    progress("Assessing conditional requirements", 0.35)
+    applicability = assess_applicability(requirements, app_docs, llm, json_loader=json_loader)
+    applicable_requirements = [
+        r for r in requirements if applicability.get(r.id, (True, ""))[0]
+    ]
+
     progress("Matching supporting evidence", 0.45)
 
     def match_progress(msg: str) -> None:
         progress(msg, 0.5)
 
     matches = match_all_evidence(
-        requirements,
+        applicable_requirements,
         app_docs,
         llm,
         progress_callback=match_progress,
@@ -80,7 +87,9 @@ def run_analysis(
             warnings.append(f"Contradiction detection skipped: {exc}")
 
     progress("Generating report", 0.85)
-    findings = build_findings(requirements, matches, instructions, app_docs)
+    findings = build_findings(
+        requirements, matches, instructions, app_docs, applicability=applicability
+    )
     coverage = document_coverage(app_docs, matches)
 
     duration = time.perf_counter() - start
