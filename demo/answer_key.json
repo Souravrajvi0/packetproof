@@ -1,0 +1,40 @@
+{
+  "scenario": "Meridian Future Scholars Program 2026 (fictional)",
+  "planted_issues": [
+    {
+      "id": "ISSUE-001",
+      "type": "missing_document",
+      "description": "Official academic transcript is not included in the uploaded packet.",
+      "related_requirement_keywords": ["transcript", "academic record"]
+    },
+    {
+      "id": "ISSUE-002",
+      "type": "contradiction",
+      "description": "Graduation date on application form (June 2025) conflicts with resume (May 2024).",
+      "fields": ["graduation_date"]
+    },
+    {
+      "id": "ISSUE-003",
+      "type": "stale_document",
+      "description": "Recommendation letter dated November 2024 is outside the required 6-month window.",
+      "related_requirement_keywords": ["recommendation", "six months"]
+    },
+    {
+      "id": "ISSUE-004",
+      "type": "missing_signature",
+      "description": "Applicant declaration is unsigned.",
+      "related_requirement_keywords": ["declaration", "signature"]
+    },
+    {
+      "id": "ISSUE-005",
+      "type": "eligibility",
+      "description": "Stated cumulative GPA of 2.7 is below the minimum 3.0 requirement.",
+      "related_requirement_keywords": ["GPA", "3.0"]
+    }
+  ],
+  "satisfied_examples": [
+    "Government-issued photo ID copy provided",
+    "Personal statement within page limit",
+    "Completed application form with contact details"
+  ]
+}
